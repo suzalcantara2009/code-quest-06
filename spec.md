@@ -1,4 +1,12 @@
-# CodeQuest — Especificação de Requisitos e Arquitetura do Sistema (spec.md — Versão 2.0 Robustecida)
+# CodeQuest — Especificação de Requisitos e Arquitetura do Sistema (spec.md — Versão 2.1)
+
+> **Changelog desta revisão (2.0 → 2.1):**
+> 1. Resolvida a contradição "RF01 é MVP e V2 ao mesmo tempo" — separado em RF01a (e-mail/senha, MVP, pré-requisito para RF02–06) e RF01b (OAuth GitHub, V2).
+> 2. Corrigido o schema: `senha_hash` agora aceita `NULL` para contas OAuth-only, com `CHECK` garantindo ao menos um método de login; adicionada tabela `tokens_reset_senha`.
+> 3. Adicionado RN09 (diferença entre soft delete de negócio e exclusão definitiva por solicitação LGPD) e RN10 (toda ficha pertence a um usuário autenticado).
+> 4. Adicionada a Seção 2.3 (Roadmap MVP/V2/Futuro por requisito), ausente na v2.0 apesar de citada no relatório consolidado do projeto.
+> 5. Adicionados RNF08 (backup/RPO) e RNF09 (observabilidade de erros), e a lista de variáveis de ambiente (Seção 5.1).
+> 6. Esclarecido RF02: `email` da ficha é de exibição pública (opcional, distinto do `email` de login em `usuarios`, que é obrigatório e único).
 
 ---
 
@@ -47,17 +55,36 @@ A concepção do CodeQuest apoia-se em arcabouços teóricos consolidados da lit
 
 ---
 
+## 2.3 Roadmap de Lançamento
+
+| Fase | Escopo | Requisitos incluídos |
+| :--- | :--- | :--- |
+| **MVP** | Conta própria, CRUD seguro de ficha, listagem/busca, integração de leitura com GitHub, auditoria | RF01a, RF02–RF12, RF18 |
+| **V2** | Login social, trilha pedagógica completa com curadoria, moderação, salas de professor, privacidade | RF01b, RF14, RF15, RF19–RF21 |
+| **Futuro** | Automação e métricas agregadas | RF16, RF17 |
+
+RF13 (estrutura dos 4 módulos da trilha) é MVP como **conteúdo estático navegável**; a curadoria dinâmica de missões (RF14/RF15) é que fica para V2 — essa distinção evita que a trilha inteira seja bloqueada esperando o painel de curadoria.
+
+---
+
 ## 3. Módulos do Sistema e Requisitos Funcionais (RF)
 
 ### Módulo A — Autenticação, Controle de Acesso e Sessão
-* **RF01 — Autenticação do Desenvolvedor (MVP / V2)**:
-  * Permite o cadastro e login seguro de usuários por e-mail/senha ou via OAuth do GitHub.
-  * A sessão deve ser gerenciada via tokens JWT ou Cookies HTTP-Only com sinalizador `SameSite=Strict`.
-  * Garantir que apenas o dono da ficha ou administradores possam editar ou arquivar dados associados.
+> **Nota de consistência (v2.1):** a versão anterior classificava RF01 como "MVP / V2" ao mesmo tempo, mas RF02–RF06 (CRUD de fichas) já são MVP e exigem um `usuario_id` dono do registro para funcionar (ver `RN10` e a FK `fichas.usuario_id`). Não é possível ter posse de ficha sem uma conta autenticada. A autenticação básica foi promovida integralmente para MVP; apenas o login social (OAuth GitHub) permanece V2.
+
+* **RF01a — Cadastro e Login por E-mail/Senha (MVP)**:
+  * Permite o cadastro (e-mail + senha) e login seguro de usuários.
+  * A sessão deve ser gerenciada via Cookies HTTP-Only, `SameSite=Strict` e `Secure`, com expiração configurável (ex.: 7 dias) e renovação silenciosa.
+  * Bloqueio temporário de tentativas de login após 5 falhas consecutivas para o mesmo e-mail (proteção contra força bruta), com log de auditoria da tentativa.
+  * Fluxo de "esqueci minha senha" via token de uso único enviado por e-mail, com expiração de 1 hora.
+  * Garantir que apenas o dono da ficha ou administradores possam editar, arquivar ou restaurar dados associados (checagem feita no servidor, nunca só na UI).
+* **RF01b — Login Social via OAuth do GitHub (V2)**:
+  * Login alternativo via OAuth 2.0 do GitHub, vinculando automaticamente a conta ao `usuario_github` já existente na ficha, quando houver.
+  * Contas criadas via OAuth não possuem `senha_hash` obrigatório (ver ajuste no schema, Seção 6) — podem definir uma senha local a qualquer momento em "Configurações de Segurança".
 
 ### Módulo B — Gestão da Ficha de Personagem
 * **RF02 — Cadastro da Ficha de Personagem (MVP)**:
-  * Registra os dados do personagem/desenvolvedor: `nome` (obrigatório), `universo` (obrigatório, ENUM), `classe` (obrigatório), `poder` (obrigatório, inteiro de 0 a 100), `data_nascimento` (opcional), `email` (opcional), `usuario_github` (opcional).
+  * Registra os dados do personagem/desenvolvedor: `nome` (obrigatório), `universo` (obrigatório, ENUM), `classe` (obrigatório), `poder` (obrigatório, inteiro de 0 a 100), `data_nascimento` (opcional), `email` (opcional — e-mail de **exibição pública** na ficha, independente do e-mail de login em `usuarios`, que é obrigatório e usado só para autenticação), `usuario_github` (opcional).
 * **RF03 — Lista Fechada de Universos Permissíveis (MVP)**:
   * O campo `universo` só aceita os valores estritamente definidos na regra de negócio: **Marvel, DC, Star Wars, Tolkien, D&D, Anime, Games**.
 * **RF04 — Validação Dupla e Retenção de Estado (MVP)**:
@@ -87,7 +114,7 @@ A concepção do CodeQuest apoia-se em arcabouços teóricos consolidados da lit
   * Exibe um link direto para o perfil do desenvolvedor no GitHub.
 * **RF12 — Resiliência, Timeout e Tratamento de Limite de Requisições (MVP)**:
   * A chamada à API externa deve possuir um *timeout* máximo de 3 segundos para evitar travamentos na renderização da página.
-  * Estratégia de *cache* temporário de dados (ex.: 1 hora) para contornar o limite de 60 requisições/hora por IP da API do GitHub sem autenticação.
+  * Estratégia de *cache* temporário de dados (ex.: 1 hora, em tabela própria ou storage do provedor) para contornar o limite de 60 requisições/hora por IP da API do GitHub sem autenticação. Caso `GITHUB_API_TOKEN` esteja configurado (Seção 5.1), o limite sobe para 5.000 req/h.
   * Em caso de indisponibilidade ou usuário não encontrado, exibe mensagem clara sem interromper as demais funções da ficha.
 
 ### Módulo E — Trilha de Aprendizagem Pedagógica e Quests (Missões)
@@ -136,6 +163,8 @@ A concepção do CodeQuest apoia-se em arcabouços teóricos consolidados da lit
 * **RN06 — Imutabilidade dos Logs de Auditoria**: Registros de auditoria são de leitura exclusiva e não podem sofrer alterações (`UPDATE`) ou deleções (`DELETE`) por nenhum usuário do sistema.
 * **RN07 — Exclusividade de Curadoria Oficial**: Apenas usuários com perfil Administrador podem criar ou alterar as missões e módulos oficiais da plataforma.
 * **RN08 — Neutralidade do Cálculo Automático de Poder**: Desenvolvedores com perfis recentes ou sem conta no GitHub mantêm o direito de definir seu valor de poder manualmente até que a integração automática seja ativada.
+* **RN09 — Direito ao Esquecimento (LGPD) vs. Soft Delete**: `ativo = 0` (RN03) é uma decisão de negócio, reversível pelo dono ou por admin, e não substitui o direito de exclusão definitiva previsto na LGPD. Mediante solicitação formal do titular, o Administrador executa uma rotina distinta de anonimização/exclusão física dos dados pessoais (e-mail, data de nascimento, senha) da ficha e da conta, preservando apenas o identificador técnico e o registro em `auditoria` (ação "EXCLUSAO_LGPD"), necessário para comprovar o cumprimento da solicitação.
+* **RN10 — Posse de Ficha**: toda ficha pertence a exatamente um `usuario_id` (autenticado via RF01a/RF01b). Não existe criação de ficha por visitante anônimo; isso é o que torna RF01a um requisito de MVP (ver nota no Módulo A).
 
 ---
 
@@ -150,6 +179,18 @@ As diretrizes de segurança e qualidade seguem o checklist oficial da apostila d
 * **RNF05 — Responsividade e Usabilidade (WCAG AA)**: A interface deve ser plenamente utilizável em dispositivos móveis e desktops, atendendo aos critérios mínimos de acessibilidade de alto contraste e navegação por teclado.
 * **RNF06 — Conformidade com a Lei Geral de Proteção de Dados (LGPD)**: Coleta restrita aos dados necessários para o funcionamento do sistema, com transparência e mecanismos para correção e exclusão pelo titular.
 * **RNF07 — Arquitetura de Hospedagem de Baixo Custo e Deploy Contínuo**: A aplicação deve ser compatível com arquitetura Serverless/Node.js hospedada na **Vercel**, conectada com deploy contínuo ao repositório do **GitHub** e banco de dados relacional em nuvem (ex.: Neon Postgres / Supabase).
+* **RNF08 — Backup e Recuperação de Desastres**: o provedor de banco de dados em nuvem deve manter backups automáticos diários com retenção mínima de 7 dias (RPO ≤ 24h). Antes de qualquer migração de schema, um dump manual adicional deve ser feito e registrado no `CHANGELOG.md`.
+* **RNF09 — Observabilidade Mínima**: erros não tratados no servidor (5xx) devem ser logados com timestamp, rota e stack trace, sem expor esses detalhes ao usuário final (ver RF18 e Cenário 4).
+
+### 5.1 Variáveis de Ambiente (nunca commitadas — ver Anexo de segurança do processo)
+
+| Variável | Finalidade |
+| :--- | :--- |
+| `DATABASE_URL` | Connection string do Postgres (Neon/Supabase) |
+| `SESSION_SECRET` / `JWT_SECRET` | Chave de assinatura da sessão do usuário |
+| `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET` | Credenciais do OAuth App do GitHub (RF01b) |
+| `GITHUB_API_TOKEN` (opcional) | Token pessoal para elevar o limite de 60 para 5.000 req/h na consulta de perfis (RF11/RF12) |
+| `SMTP_*` | Envio do e-mail de recuperação de senha (RF01a) |
 
 ---
 
@@ -161,8 +202,22 @@ CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
-    senha_hash VARCHAR(255) NOT NULL,
+    senha_hash VARCHAR(255),              -- NULL permitido: conta pode ter sido criada só via OAuth (RF01b)
+    github_oauth_id VARCHAR(50) UNIQUE,   -- id numérico estável do GitHub, preenchido no login OAuth (RF01b)
     tipo VARCHAR(20) DEFAULT 'estudante' CHECK (tipo IN ('estudante', 'professor', 'moderador', 'admin')),
+    tentativas_login INT DEFAULT 0,
+    bloqueado_ate TIMESTAMP,              -- suporta o RF01a (bloqueio após 5 falhas)
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_metodo_login CHECK (senha_hash IS NOT NULL OR github_oauth_id IS NOT NULL)
+);
+
+-- Tokens de recuperação de senha (RF01a)
+CREATE TABLE tokens_reset_senha (
+    id SERIAL PRIMARY KEY,
+    usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
+    token_hash VARCHAR(255) NOT NULL,
+    expira_em TIMESTAMP NOT NULL,
+    usado BOOLEAN DEFAULT FALSE,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
