@@ -1,0 +1,197 @@
+// Prisma Schema para CodeQuest
+// Baseado na Seção 6 do spec.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id                 Int                @id @default(autoincrement())
+  nome               String             @db.VarChar(100)
+  email              String             @unique @db.VarChar(150)
+  senha_hash         String?            @db.VarChar(255)
+  github_oauth_id    String?            @unique @db.VarChar(50)
+  tipo               String             @default("estudante") @db.VarChar(20) // 'estudante', 'professor', 'moderador', 'admin'
+  tentativas_login   Int                @default(0)
+  bloqueado_ate      DateTime?          @db.Timestamp(6)
+  email_verificado   Boolean            @default(false)
+  termos_aceitos_em  DateTime?          @db.Timestamp(6)
+  termos_versao      String?            @db.VarChar(20)
+  criado_em          DateTime           @default(now()) @db.Timestamp(6)
+
+  // Relacionamentos
+  fichas             Ficha[]
+  tokens_reset       TokenResetSenha[]
+  sessoes            Sessao[]
+  auditorias         Auditoria[]
+  denuncias_feitas   Denuncia[]         @relation("DenuncianteRel")
+  denuncias_moderadas Denuncia[]        @relation("ModeradorRel")
+  salas_lecionadas   Sala[]             @relation("ProfessorSalas")
+  salas_matriculadas SalaAluno[]
+
+  @@map("usuarios")
+}
+
+model TokenResetSenha {
+  id         Int      @id @default(autoincrement())
+  usuario_id Int
+  token_hash String   @db.VarChar(255)
+  expira_em  DateTime @db.Timestamp(6)
+  usado      Boolean  @default(false)
+  criado_em  DateTime @default(now()) @db.Timestamp(6)
+
+  usuario    Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  @@map("tokens_reset_senha")
+}
+
+model Sessao {
+  id                 Int      @id @default(autoincrement())
+  usuario_id         Int
+  refresh_token_hash String   @db.VarChar(255)
+  criado_em          DateTime @default(now()) @db.Timestamp(6)
+  expira_em          DateTime @db.Timestamp(6)
+  revogado           Boolean  @default(false)
+
+  usuario            Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+
+  @@map("sessoes")
+}
+
+model GithubCache {
+  usuario_github  String   @id @db.VarChar(39)
+  avatar_url      String?  @db.Text
+  repos_publicos  Int      @default(0)
+  linguagens      Json?
+  total_estrelas  Int      @default(0)
+  atualizado_em   DateTime @default(now()) @db.Timestamp(6)
+
+  @@map("github_cache")
+}
+
+model Ficha {
+  id             Int       @id @default(autoincrement())
+  usuario_id     Int
+  nome           String    @db.VarChar(100)
+  universo       String    @db.VarChar(30) // 'Marvel', 'DC', 'Star Wars', 'Tolkien', 'D&D', 'Anime', 'Games'
+  classe         String    @db.VarChar(50)
+  poder          Int
+  data_nascimento DateTime? @db.Date
+  email          String?   @db.VarChar(150)
+  usuario_github String?   @db.VarChar(39)
+  ativo          Boolean   @default(true)
+  criado_em      DateTime  @default(now()) @db.Timestamp(6)
+  atualizado_em  DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+
+  usuario        Usuario   @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  auditorias     Auditoria[]
+  missoes_concluidas MissaoConcluida[]
+  denuncias      Denuncia[]
+
+  @@index([ativo, universo, nome], map: "idx_fichas_busca_ativa")
+  @@index([ativo, poder(sort: Desc)], map: "idx_fichas_ranking")
+  @@map("fichas")
+}
+
+model Modulo {
+  id         Int      @id @default(autoincrement())
+  ordem      Int      @unique
+  titulo     String   @db.VarChar(100)
+  tecnologia String   @db.VarChar(50)
+  descricao  String   @db.Text
+
+  missoes    Missao[]
+
+  @@map("modulos")
+}
+
+model Missao {
+  id              Int       @id @default(autoincrement())
+  modulo_id       Int
+  titulo          String    @db.VarChar(150)
+  enunciado       String    @db.Text
+  codigo_inicial  String?   @db.Text
+  criterio_aceite String    @db.Text
+  dificuldade     String    @default("facil") @db.VarChar(10) // 'facil', 'medio', 'dificil'
+  criado_em       DateTime  @default(now()) @db.Timestamp(6)
+
+  modulo          Modulo    @relation(fields: [modulo_id], references: [id], onDelete: Cascade)
+  conclusoes      MissaoConcluida[]
+
+  @@map("missoes")
+}
+
+model MissaoConcluida {
+  id             Int      @id @default(autoincrement())
+  ficha_id       Int
+  missao_id      Int
+  data_conclusao DateTime @default(now()) @db.Timestamp(6)
+
+  ficha          Ficha    @relation(fields: [ficha_id], references: [id], onDelete: Cascade)
+  missao         Missao   @relation(fields: [missao_id], references: [id], onDelete: Cascade)
+
+  @@unique([ficha_id, missao_id])
+  @@map("missoes_concluidas")
+}
+
+model Denuncia {
+  id             Int       @id @default(autoincrement())
+  ficha_id       Int
+  denunciante_id Int?
+  moderador_id   Int?
+  motivo         String    @db.Text
+  status         String    @default("pendente") @db.VarChar(15) // 'pendente', 'procedente', 'improcedente'
+  criado_em      DateTime  @default(now()) @db.Timestamp(6)
+  resolvido_em   DateTime? @db.Timestamp(6)
+
+  ficha          Ficha     @relation(fields: [ficha_id], references: [id], onDelete: Cascade)
+  denunciante    Usuario?  @relation("DenuncianteRel", fields: [denunciante_id], references: [id], onDelete: SetNull)
+  moderador      Usuario?  @relation("ModeradorRel", fields: [moderador_id], references: [id], onDelete: SetNull)
+
+  @@map("denuncias")
+}
+
+model Sala {
+  id            Int         @id @default(autoincrement())
+  professor_id  Int
+  nome          String      @db.VarChar(100)
+  codigo_acesso String      @unique @db.VarChar(20)
+  criado_em     DateTime    @default(now()) @db.Timestamp(6)
+
+  professor     Usuario     @relation("ProfessorSalas", fields: [professor_id], references: [id], onDelete: Cascade)
+  alunos        SalaAluno[]
+
+  @@map("salas")
+}
+
+model SalaAluno {
+  id        Int      @id @default(autoincrement())
+  sala_id   Int
+  aluno_id  Int
+  entrou_em DateTime @default(now()) @db.Timestamp(6)
+
+  sala      Sala     @relation(fields: [sala_id], references: [id], onDelete: Cascade)
+  aluno     Usuario  @relation(fields: [aluno_id], references: [id], onDelete: Cascade)
+
+  @@unique([sala_id, aluno_id])
+  @@map("sala_alunos")
+}
+
+model Auditoria {
+  id         Int      @id @default(autoincrement())
+  ficha_id   Int?
+  autor_id   Int?
+  acao       String   @db.VarChar(50)
+  detalhes   String?  @db.Text
+  data_hora  DateTime @default(now()) @db.Timestamp(6)
+
+  ficha      Ficha?   @relation(fields: [ficha_id], references: [id], onDelete: SetNull)
+  autor      Usuario? @relation(fields: [autor_id], references: [id], onDelete: SetNull)
+
+  @@map("auditoria")
+}
