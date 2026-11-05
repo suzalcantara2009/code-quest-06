@@ -14,7 +14,65 @@ O CodeQuest é uma plataforma web gamificada que transforma a prática de progra
 * **Moderador de Conteúdo**: analisa denúncias de fichas (nomes/conteúdos impróprios) e confirma ou rejeita arquivamentos.
 * **Administrador / Curador Oficial**: acesso total — cadastra e mantém as missões e módulos oficiais, gerencia permissões de moderadores, acessa o painel administrativo e executa a exclusão definitiva de dados por solicitação LGPD.
 
-## 3. Casos de uso principais
+## 3. Guia de Instalação e Casos de Uso Principais
+
+### 3.1 Guia de Instalação e Execução Local
+
+#### Pré-requisitos
+* **Node.js**: versão 18.x ou 20.x+ instalada (LTS recomendada)
+* **npm** ou gerenciador de pacotes equivalente (`yarn`, `pnpm`)
+* **PostgreSQL**: banco de dados relacional local ou instância em nuvem (ex.: Neon Serverless Postgres, Supabase)
+* **Git** instalado
+
+#### Passo a Passo de Instalação
+
+1. **Clonar o Repositório:**
+   ```bash
+   git clone https://github.com/suzalcantara2009/code-quest-06.git
+   cd code-quest-06
+   ```
+
+2. **Instalar Dependências:**
+   ```bash
+   npm install
+   ```
+
+3. **Configuração de Variáveis de Ambiente:**
+   Copie o arquivo de exemplo `.env.example` para criar seu arquivo `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+   Edite o `.env` e configure a string de conexão com o banco de dados PostgreSQL (`DATABASE_URL`) e segredos de criptografia:
+   ```env
+   DATABASE_URL="postgresql://usuario:senha@localhost:5432/codequest?schema=public"
+   SESSION_SECRET="sua-chave-secreta-de-sessao-com-minimo-32-caracteres"
+   JWT_SECRET="sua-chave-secreta-jwt-super-segura"
+   NEXT_PUBLIC_APP_URL="http://localhost:3000"
+   ```
+
+4. **Geração e Sincronização do Banco de Dados:**
+   Gere os tipos do Prisma Client e sincronize as tabelas no PostgreSQL:
+   ```bash
+   npm run db:generate
+   npm run db:push
+   ```
+   *Nota: Se preferir rodar o DDL SQL nativo via psql ou ferramenta gráfica (DBeaver, pgAdmin), o script completo está disponível em [`database/schema.sql`](./database/schema.sql).*
+
+5. **Executar o Servidor de Desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+   Abra [http://localhost:3000](http://localhost:3000) no seu navegador para utilizar o sistema.
+
+6. **Compilação e Execução em Produção:**
+   ```bash
+   npm run build
+   npm run start
+   ```
+
+---
+
+### 3.2 Casos de Uso Principais
 
 * Visitante busca e filtra a listagem pública de personagens ativos.
 * Estudante cria uma conta (e-mail/senha) ou entra com login social do GitHub.
