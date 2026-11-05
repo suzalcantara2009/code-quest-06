@@ -7,6 +7,9 @@ Registro cronológico e detalhado de decisões técnicas de arquitetura, correç
 ## [1.0.0] - 2026-11-04 (Release de Entrega e Publicação)
 
 ### 🚀 Adicionado
+- **Autenticação Segura com Validação Estrita de Hash (RF01a / RNF01)**: Rota `/api/auth/login` conectada ao banco PostgreSQL via Prisma, com comparação obrigatória de hash usando `bcrypt.compare` impedindo senhas arbitrárias, contagem de tentativas com bloqueio temporário após 5 falhas consecutivas e emissão de cookies seguros de sessão `HttpOnly`.
+- **Cadastro com Persistência Relacional**: Rota `/api/auth/cadastro` gravando novos usuários com hash bcrypt (custo 10) e consentimento dos termos.
+- **Encerramento de Sessão (RF01e)**: Rota `/api/auth/logout` com revogação no banco de dados e expiração de cookies.
 - **Deploy em Produção na Vercel ([https://code-quest-06.vercel.app](https://code-quest-06.vercel.app))**: Aplicação compilada e hospedada com sucesso em ambiente Serverless na Vercel com domínio de produção ativo e seguro (HTTPS/HSTS).
 - **Banco de Dados Remoto PostgreSQL (Neon Serverless)**: Provisionamento de instância remota gerenciada do PostgreSQL, integrada às variáveis de ambiente da Vercel e sincronizada via `prisma db push` com todas as 11 tabelas.
 - **Guia de Instalação na Seção 3 da Spec ([`spec.md`](./spec.md))**: Inclusão de instruções detalhadas passo a passo de pré-requisitos, variáveis de ambiente, migração do banco com Prisma e scripts de execução local e produção.
