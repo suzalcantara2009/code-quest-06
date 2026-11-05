@@ -7,6 +7,8 @@ Registro cronológico e detalhado de decisões técnicas de arquitetura, correç
 ## [1.0.0] - 2026-11-04 (Release de Entrega e Publicação)
 
 ### 🚀 Adicionado
+- **Deploy em Produção na Vercel ([https://code-quest-06.vercel.app](https://code-quest-06.vercel.app))**: Aplicação compilada e hospedada com sucesso em ambiente Serverless na Vercel com domínio de produção ativo e seguro (HTTPS/HSTS).
+- **Banco de Dados Remoto PostgreSQL (Neon Serverless)**: Provisionamento de instância remota gerenciada do PostgreSQL, integrada às variáveis de ambiente da Vercel e sincronizada via `prisma db push` com todas as 11 tabelas.
 - **Guia de Instalação na Seção 3 da Spec ([`spec.md`](./spec.md))**: Inclusão de instruções detalhadas passo a passo de pré-requisitos, variáveis de ambiente, migração do banco com Prisma e scripts de execução local e produção.
 - **Script SQL Padronizado de Banco de Dados ([`database/schema.sql`](./database/schema.sql))**: Disponibilização do DDL SQL nativo para PostgreSQL contendo todas as 11 tabelas, índices parciais, constraints CHECK e regras de integridade referencial.
 - **Documentação de Changelog ([`CHANGELOG.md`](./CHANGELOG.md))**: Criação deste documento consolidado para prestação de contas das decisões de engenharia de software e revisões das propostas de IA.
@@ -59,3 +61,4 @@ Registro cronológico e detalhado de decisões técnicas de arquitetura, correç
 - Criação do repositório no GitHub (`code-quest-06`).
 - Definição do escopo da plataforma gamificada CodeQuest para portfólio verificável de programadores iniciantes.
 - Primeiros rascunhos dos requisitos de fichas, universos e integração com métricas do GitHub.
+
