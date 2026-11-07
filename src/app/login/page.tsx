@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Shield,
   Mail,
@@ -20,15 +20,21 @@ import { Button } from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
 import { loginSchema } from '@/lib/validations/auth';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get('email') || '';
+  const cadastradoParam = searchParams.get('cadastrado');
+
+  const [email, setEmail] = useState(emailParam);
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [erroGeral, setErroGeral] = useState<string | null>(null);
-  const [toastSucesso, setToastSucesso] = useState<string | null>(null);
+  const [toastSucesso, setToastSucesso] = useState<string | null>(
+    cadastradoParam ? 'Conta cadastrada no banco de dados! Insira sua senha para acessar.' : null
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,5 +236,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={<div className="flex-1 flex items-center justify-center text-slate-400">Carregando...</div>}>
+      <LoginForm />
+    </React.Suspense>
   );
 }

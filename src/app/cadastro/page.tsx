@@ -100,11 +100,10 @@ export default function CadastroPage() {
         return;
       }
 
-      setToastSucesso('Cadastro realizado! Enviamos o link de ativação para seu e-mail.');
+      setToastSucesso('Conta criada e salva com sucesso no banco de dados! Redirecionando...');
       setTimeout(() => {
-        // Redireciona para aviso de verificação de e-mail (RF01c, RN12)
-        router.push('/verificar-email');
-      }, 1500);
+        router.push(`/login?email=${encodeURIComponent(email)}&cadastrado=true`);
+      }, 1200);
     } catch (err) {
       setErroGeral('Não foi possível conectar ao servidor. Tente novamente mais tarde.');
     } finally {

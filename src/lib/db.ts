@@ -10,8 +10,7 @@ export const prisma =
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+// Sempre armazena a instância no globalThis para reutilização de conexões em ambientes serverless (Vercel/Neon)
+globalForPrisma.prisma = prisma;
 
 export default prisma;
