@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Play,
   RotateCcw,
@@ -20,6 +20,9 @@ import {
   Trophy,
   ArrowRight,
   HelpCircle,
+  Volume2,
+  VolumeX,
+  FastForward,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -29,12 +32,15 @@ import { Button } from '@/components/ui/Button';
 export type BlockType =
   | 'avancar'
   | 'avancar_2'
+  | 'recuar'
   | 'girar_direita'
   | 'girar_esquerda'
+  | 'girar_180'
   | 'acender_tocha'
   | 'coletar_cristal'
   | 'repetir_2_avancar'
   | 'repetir_3_avancar'
+  | 'repetir_5_avancar'
   | 'repetir_coleta';
 
 export interface ScratchBlock {
@@ -44,13 +50,15 @@ export interface ScratchBlock {
   category: 'movimento' | 'acao' | 'controle';
 }
 
-// Definição dos blocos disponíveis na Paleta Scratch
+// Paleta completa de blocos estilo Scratch
 const PALETA_BLOCOS: { type: BlockType; label: string; category: 'movimento' | 'acao' | 'controle' }[] = [
   // Movimento (Azul)
   { type: 'avancar', label: 'Avançar 1 passo', category: 'movimento' },
   { type: 'avancar_2', label: 'Avançar 2 passos', category: 'movimento' },
+  { type: 'recuar', label: 'Recuar 1 passo 🔙', category: 'movimento' },
   { type: 'girar_direita', label: 'Girar 90° à Direita ↷', category: 'movimento' },
   { type: 'girar_esquerda', label: 'Girar 90° à Esquerda ↶', category: 'movimento' },
+  { type: 'girar_180', label: 'Meia-Volta (180°) 🔄', category: 'movimento' },
 
   // Ações RPG (Âmbar/Amarelo)
   { type: 'acender_tocha', label: 'Acender Tocha 🔥', category: 'acao' },
@@ -59,16 +67,103 @@ const PALETA_BLOCOS: { type: BlockType; label: string; category: 'movimento' | '
   // Controle & Repetição (Laranja vivo)
   { type: 'repetir_2_avancar', label: '🔁 Repetir 2x [ Avançar ]', category: 'controle' },
   { type: 'repetir_3_avancar', label: '🔁 Repetir 3x [ Avançar ]', category: 'controle' },
+  { type: 'repetir_5_avancar', label: '🔁 Repetir 5x [ Avançar ]', category: 'controle' },
   { type: 'repetir_coleta', label: '🔁 Repetir 3x [ Avançar + Coletar ]', category: 'controle' },
 ];
 
-// Configuração dos 4 Níveis / Desafios Pedagógicos
+// Efeitos Sonoros com Web Audio API nativo (Zero dependências externas)
+function emitirSom(tipo: 'passo' | 'giro' | 'tocha' | 'cristal' | 'vitoria' | 'colisao', habilitado: boolean) {
+  if (!habilitado || typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+
+    if (tipo === 'passo') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } else if (tipo === 'giro') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(390, now + 0.09);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.09);
+      osc.start(now);
+      osc.stop(now + 0.09);
+    } else if (tipo === 'cristal') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(587.33, now); // D5
+      osc.frequency.setValueAtTime(880, now + 0.07); // A5
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else if (tipo === 'tocha') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.15);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (tipo === 'colisao') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.2);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (tipo === 'vitoria') {
+      const notas = [523.25, 659.25, 783.99, 1046.50];
+      notas.forEach((freq, idx) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t = now + idx * 0.12;
+        o.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0.15, t);
+        g.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
+        o.start(t);
+        o.stop(t + 0.28);
+      });
+    }
+  } catch (e) {
+    // Navegador pode bloquear áudio antes do primeiro clique
+  }
+}
+
+// 8 Desafios Progressivos com Variedade Rica de Cenários
 interface DesafioConfig {
   id: number;
   titulo: string;
   descricao: string;
   objetivo: string;
-  tamanho: number; // grid NxN (ex: 5x5 ou 6x6)
+  tamanho: number;
   heroiInicio: { x: number; y: number; dir: number }; // dir: 0: Cima, 1: Direita, 2: Baixo, 3: Esquerda
   paredes: { x: number; y: number }[];
   tochas: { x: number; y: number }[];
@@ -82,10 +177,10 @@ const DESAFIOS: DesafioConfig[] = [
   {
     id: 1,
     titulo: 'Desafio 1: A Trilha das Tochas',
-    descricao: 'Acenda as 2 tochas sagradas e alcance o portal místico usando sequenciamento simples.',
+    descricao: 'Acenda as 2 tochas sagradas e alcance o portal místico usando sequenciamento linear.',
     objetivo: 'Acender todas as tochas e entrar no portal.',
     tamanho: 5,
-    heroiInicio: { x: 0, y: 0, dir: 1 }, // Começa em (0,0) olhando para Direita
+    heroiInicio: { x: 0, y: 0, dir: 1 },
     paredes: [
       { x: 1, y: 1 },
       { x: 2, y: 1 },
@@ -103,8 +198,8 @@ const DESAFIOS: DesafioConfig[] = [
   {
     id: 2,
     titulo: 'Desafio 2: A Curva do Guardião',
-    descricao: 'Contorne as muralhas do castelo usando giros precisos e acione o portal final.',
-    objetivo: 'Desviar da parede com giros de 90° e alcançar o portal sem bater.',
+    descricao: 'Contorne as muralhas do castelo usando giros de 90° e acione o portal final.',
+    objetivo: 'Desviar da parede com giros precisos e alcançar o portal.',
     tamanho: 5,
     heroiInicio: { x: 0, y: 1, dir: 1 },
     paredes: [
@@ -148,28 +243,98 @@ const DESAFIOS: DesafioConfig[] = [
   },
   {
     id: 4,
-    titulo: 'Desafio 4: A Forja do Autômato',
-    descricao: 'O grande teste: colete os cristais de energia, acenda a forja e abra o portal do golem!',
-    objetivo: 'Coletar os cristais, acender a tocha da forja e alcançar o portal.',
+    titulo: 'Desafio 4: A Dança do Zigue-Zague',
+    descricao: 'Percorra um caminho em zigue-zague coletando cristais e acendendo tochas em cada vértice.',
+    objetivo: 'Alternar curvas à direita e à esquerda sem colidir nas barreiras.',
     tamanho: 6,
     heroiInicio: { x: 0, y: 0, dir: 1 },
     paredes: [
-      { x: 1, y: 1 },
+      { x: 2, y: 0 },
       { x: 2, y: 1 },
-      { x: 3, y: 1 },
-      { x: 1, y: 3 },
-      { x: 3, y: 3 },
+      { x: 4, y: 2 },
       { x: 4, y: 3 },
+      { x: 2, y: 4 },
+      { x: 2, y: 5 },
+    ],
+    tochas: [{ x: 1, y: 2 }, { x: 5, y: 4 }],
+    cristais: [{ x: 3, y: 1 }, { x: 3, y: 3 }],
+    portal: { x: 5, y: 5 },
+    blocosSugeridos: ['avancar', 'girar_direita', 'avancar_2', 'acender_tocha', 'girar_esquerda'],
+    xp: 35,
+  },
+  {
+    id: 5,
+    titulo: 'Desafio 5: O Fosso do Dragão',
+    descricao: 'Um desfiladeiro estreito cercado de precipícios. Use avanços precisos para recolher as relíquias.',
+    objetivo: 'Percorrer a ponte estreita, coletar 3 cristais e alcançar o portal seguro.',
+    tamanho: 6,
+    heroiInicio: { x: 0, y: 3, dir: 1 },
+    paredes: [
+      { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 },
+      { x: 1, y: 4 }, { x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 },
+      { x: 0, y: 0 }, { x: 0, y: 1 }, { x: 5, y: 0 }, { x: 5, y: 1 },
+    ],
+    tochas: [{ x: 5, y: 2 }],
+    cristais: [{ x: 1, y: 3 }, { x: 2, y: 3 }, { x: 4, y: 3 }],
+    portal: { x: 5, y: 3 },
+    blocosSugeridos: ['repetir_coleta', 'avancar', 'acender_tocha'],
+    xp: 40,
+  },
+  {
+    id: 6,
+    titulo: 'Desafio 6: A Forja do Autômato',
+    descricao: 'Colete os cristais de energia, acenda a tocha sagrada da forja e desperte o portal!',
+    objetivo: 'Coletar os cristais, acender a forja central e chegar ao portal.',
+    tamanho: 6,
+    heroiInicio: { x: 0, y: 0, dir: 1 },
+    paredes: [
+      { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 },
+      { x: 1, y: 3 }, { x: 3, y: 3 }, { x: 4, y: 3 },
     ],
     tochas: [{ x: 2, y: 2 }],
-    cristais: [
-      { x: 0, y: 2 },
-      { x: 4, y: 2 },
-      { x: 2, y: 4 },
-    ],
+    cristais: [{ x: 0, y: 2 }, { x: 4, y: 2 }, { x: 2, y: 4 }],
     portal: { x: 5, y: 5 },
     blocosSugeridos: ['avancar_2', 'girar_direita', 'coletar_cristal', 'avancar', 'acender_tocha'],
-    xp: 40,
+    xp: 45,
+  },
+  {
+    id: 7,
+    titulo: 'Desafio 7: O Labirinto em Espiral',
+    descricao: 'Um percurso em caracol que vai da borda externa até o núcleo místico das catacumbas.',
+    objetivo: 'Seguir o padrão de repetições e curvas concêntricas até o centro.',
+    tamanho: 6,
+    heroiInicio: { x: 0, y: 0, dir: 1 },
+    paredes: [
+      { x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 },
+      { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 4, y: 4 },
+      { x: 3, y: 4 }, { x: 2, y: 4 }, { x: 1, y: 4 },
+      { x: 1, y: 3 }, { x: 2, y: 3 },
+    ],
+    tochas: [{ x: 5, y: 0 }, { x: 5, y: 5 }],
+    cristais: [{ x: 0, y: 5 }, { x: 3, y: 2 }],
+    portal: { x: 2, y: 2 },
+    blocosSugeridos: ['repetir_5_avancar', 'acender_tocha', 'girar_direita', 'repetir_5_avancar'],
+    xp: 50,
+  },
+  {
+    id: 8,
+    titulo: 'Desafio 8: A Torre do Mestre dos Magos (Chefe Final)',
+    descricao: 'O grande teste supremo da Torre dos Magos: 3 tochas ancestrais e 4 cristais arcanos em um tabuleiro 7x7!',
+    objetivo: 'Acender as 3 tochas, coletar os 4 cristais e entrar no portal místico.',
+    tamanho: 7,
+    heroiInicio: { x: 0, y: 0, dir: 1 },
+    paredes: [
+      { x: 2, y: 0 }, { x: 2, y: 1 }, { x: 2, y: 2 },
+      { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 4, y: 4 },
+      { x: 1, y: 4 }, { x: 2, y: 4 },
+      { x: 5, y: 0 }, { x: 5, y: 1 },
+      { x: 0, y: 6 }, { x: 1, y: 6 }, { x: 2, y: 6 },
+    ],
+    tochas: [{ x: 1, y: 2 }, { x: 5, y: 3 }, { x: 3, y: 6 }],
+    cristais: [{ x: 0, y: 3 }, { x: 6, y: 0 }, { x: 6, y: 5 }, { x: 3, y: 3 }],
+    portal: { x: 6, y: 6 },
+    blocosSugeridos: ['avancar_2', 'girar_direita', 'acender_tocha', 'repetir_3_avancar', 'coletar_cristal'],
+    xp: 60,
   },
 ];
 
@@ -182,10 +347,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
   const [desafioId, setDesafioId] = useState(desafioInicialId);
   const desafio = DESAFIOS.find((d) => d.id === desafioId) || DESAFIOS[0];
 
-  // Workspace de blocos montado pelo estudante
   const [scriptBlocos, setScriptBlocos] = useState<ScratchBlock[]>([]);
-
-  // Estado do Palco de Simulação (Grid)
   const [posHeroi, setPosHeroi] = useState({ x: 0, y: 0, dir: 1 });
   const [tochasAcesas, setTochasAcesas] = useState<string[]>([]);
   const [cristaisColetados, setCristaisColetados] = useState<string[]>([]);
@@ -195,28 +357,29 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
   const [statusTipo, setStatusTipo] = useState<'info' | 'sucesso' | 'erro'>('info');
   const [modalVitoria, setModalVitoria] = useState(false);
   const [velocidade, setVelocidade] = useState<'normal' | 'rapida'>('normal');
+  const [somAtivo, setSomAtivo] = useState(true);
 
-  const reiniciarPalco = React.useCallback(() => {
+  const reiniciarPalco = useCallback(() => {
     setPosHeroi({ ...desafio.heroiInicio });
     setTochasAcesas([]);
     setCristaisColetados([]);
     setEmExecucao(false);
     setBlocoExecutandoId(null);
-    setMensagemStatus('Monte seu algoritmo com os blocos e clique na Bandeira Verde para testar!');
+    setMensagemStatus('Monte seu algoritmo com os blocos e clique em Executar para testar!');
     setStatusTipo('info');
   }, [desafio]);
 
-  // Inicializar o palco quando mudar de desafio
   useEffect(() => {
     reiniciarPalco();
     setScriptBlocos([]);
   }, [reiniciarPalco]);
 
-  // Adicionar bloco da paleta ao script
   const adicionarBloco = (tipo: BlockType) => {
     if (emExecucao) return;
     const modelo = PALETA_BLOCOS.find((b) => b.type === tipo);
     if (!modelo) return;
+
+    emitirSom('giro', somAtivo);
 
     const novoBloco: ScratchBlock = {
       id: `${tipo}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -228,13 +391,11 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
     setScriptBlocos((prev) => [...prev, novoBloco]);
   };
 
-  // Remover bloco do script
   const removerBloco = (id: string) => {
     if (emExecucao) return;
     setScriptBlocos((prev) => prev.filter((b) => b.id !== id));
   };
 
-  // Mover bloco para cima ou para baixo
   const moverBloco = (index: number, direcao: 'cima' | 'baixo') => {
     if (emExecucao) return;
     const novoIndex = direcao === 'cima' ? index - 1 : index + 1;
@@ -249,7 +410,6 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
     });
   };
 
-  // Carregar blocos de exemplo recomendados para a fase
   const carregarExemplo = () => {
     if (emExecucao) return;
     const blocosCarregados: ScratchBlock[] = desafio.blocosSugeridos.map((tipo, idx) => {
@@ -262,13 +422,12 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
       };
     });
     setScriptBlocos(blocosCarregados);
+    emitirSom('tocha', somAtivo);
   };
 
-  // Interpretador / Executor passo a passo dos blocos estilo Scratch
   const executarAlgoritmo = async () => {
     if (emExecucao || scriptBlocos.length === 0) return;
 
-    // Resetar posições antes de começar a execução
     let x = desafio.heroiInicio.x;
     let y = desafio.heroiInicio.y;
     let dir = desafio.heroiInicio.dir;
@@ -282,10 +441,9 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
     setMensagemStatus('Executando o algoritmo de blocos passo a passo...');
     setStatusTipo('info');
 
-    const delayTempo = velocidade === 'rapida' ? 250 : 500;
+    const delayTempo = velocidade === 'rapida' ? 220 : 450;
     const esperar = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    // Vetores de direção: 0: Cima (y-1), 1: Direita (x+1), 2: Baixo (y+1), 3: Esquerda (x-1)
     const deltas = [
       { dx: 0, dy: -1 }, // Cima
       { dx: 1, dy: 0 },  // Direita
@@ -295,55 +453,67 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
 
     let bateuParede = false;
 
-    // Função interna para avançar 1 passo com colisão
-    const darUmPasso = () => {
-      const nx = x + deltas[dir].dx;
-      const ny = y + deltas[dir].dy;
+    const darUmPasso = (invertido: boolean = false) => {
+      const multiplicador = invertido ? -1 : 1;
+      const nx = x + deltas[dir].dx * multiplicador;
+      const ny = y + deltas[dir].dy * multiplicador;
 
-      // Verificar limites do tabuleiro
       if (nx < 0 || nx >= desafio.tamanho || ny < 0 || ny >= desafio.tamanho) {
         bateuParede = true;
+        emitirSom('colisao', somAtivo);
         return;
       }
 
-      // Verificar colisão com paredes
       const temParede = desafio.paredes.some((p) => p.x === nx && p.y === ny);
       if (temParede) {
         bateuParede = true;
+        emitirSom('colisao', somAtivo);
         return;
       }
 
       x = nx;
       y = ny;
       setPosHeroi({ x, y, dir });
+      emitirSom('passo', somAtivo);
     };
 
-    // Percorrer cada bloco do script
     for (let i = 0; i < scriptBlocos.length; i++) {
       const bloco = scriptBlocos[i];
       setBlocoExecutandoId(bloco.id);
 
       switch (bloco.type) {
         case 'avancar':
-          darUmPasso();
+          darUmPasso(false);
           break;
 
         case 'avancar_2':
-          darUmPasso();
+          darUmPasso(false);
           if (!bateuParede) {
             await esperar(delayTempo / 2);
-            darUmPasso();
+            darUmPasso(false);
           }
+          break;
+
+        case 'recuar':
+          darUmPasso(true);
           break;
 
         case 'girar_direita':
           dir = (dir + 1) % 4;
           setPosHeroi({ x, y, dir });
+          emitirSom('giro', somAtivo);
           break;
 
         case 'girar_esquerda':
           dir = (dir + 3) % 4;
           setPosHeroi({ x, y, dir });
+          emitirSom('giro', somAtivo);
+          break;
+
+        case 'girar_180':
+          dir = (dir + 2) % 4;
+          setPosHeroi({ x, y, dir });
+          emitirSom('giro', somAtivo);
           break;
 
         case 'acender_tocha': {
@@ -352,6 +522,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
           if (ehPosicaoTocha && !tochas.includes(chave)) {
             tochas.push(chave);
             setTochasAcesas([...tochas]);
+            emitirSom('tocha', somAtivo);
           }
           break;
         }
@@ -362,31 +533,40 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
           if (ehPosicaoCristal && !cristais.includes(chave)) {
             cristais.push(chave);
             setCristaisColetados([...cristais]);
+            emitirSom('cristal', somAtivo);
           }
           break;
         }
 
         case 'repetir_2_avancar':
           for (let k = 0; k < 2 && !bateuParede; k++) {
-            darUmPasso();
+            darUmPasso(false);
             await esperar(delayTempo / 2);
           }
           break;
 
         case 'repetir_3_avancar':
           for (let k = 0; k < 3 && !bateuParede; k++) {
-            darUmPasso();
+            darUmPasso(false);
+            await esperar(delayTempo / 2);
+          }
+          break;
+
+        case 'repetir_5_avancar':
+          for (let k = 0; k < 5 && !bateuParede; k++) {
+            darUmPasso(false);
             await esperar(delayTempo / 2);
           }
           break;
 
         case 'repetir_coleta':
           for (let k = 0; k < 3 && !bateuParede; k++) {
-            darUmPasso();
+            darUmPasso(false);
             const chave = `${x},${y}`;
             if (desafio.cristais.some((c) => c.x === x && c.y === y) && !cristais.includes(chave)) {
               cristais.push(chave);
               setCristaisColetados([...cristais]);
+              emitirSom('cristal', somAtivo);
             }
             await esperar(delayTempo / 2);
           }
@@ -398,7 +578,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
       if (bateuParede) {
         setBlocoExecutandoId(null);
         setEmExecucao(false);
-        setMensagemStatus('💥 Ops! O herói colidiu com uma parede ou saiu do mapa! Ajuste os giros do algoritmo.');
+        setMensagemStatus('💥 Ops! O herói bateu na parede ou saiu do mapa! Ajuste os giros do algoritmo.');
         setStatusTipo('erro');
         return;
       }
@@ -407,17 +587,16 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
     setBlocoExecutandoId(null);
     setEmExecucao(false);
 
-    // Validação final de vitória
     const chegouPortal = x === desafio.portal.x && y === desafio.portal.y;
     const acendeuTodasTochas = desafio.tochas.length === 0 || tochas.length === desafio.tochas.length;
     const coletouTodosCristais = desafio.cristais.length === 0 || cristais.length === desafio.cristais.length;
 
     if (chegouPortal && acendeuTodasTochas && coletouTodosCristais) {
-      setMensagemStatus('🎉 Vitória! Seu algoritmo executou todas as ações com maestria e abriu o portal!');
+      setMensagemStatus('🎉 Vitória Espetacular! Seu algoritmo em blocos concluiu todos os objetivos!');
       setStatusTipo('sucesso');
       setModalVitoria(true);
+      emitirSom('vitoria', somAtivo);
 
-      // Salvar conclusão no localStorage
       try {
         const salvas = localStorage.getItem('codequest_missoes_concluidas');
         const ids: number[] = salvas ? JSON.parse(salvas) : [];
@@ -431,7 +610,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
         onConcluirDesafio(desafio.id, desafio.xp);
       }
     } else if (!chegouPortal) {
-      setMensagemStatus('Quase lá! O herói executou todos os blocos, mas não alcançou o Portal mágico de saída.');
+      setMensagemStatus('Quase lá! O herói executou todos os blocos, mas não alcançou o Portal mágico.');
       setStatusTipo('erro');
     } else if (!acendeuTodasTochas) {
       setMensagemStatus(`O herói chegou ao portal, mas faltou acender ${desafio.tochas.length - tochas.length} tocha(s)!`);
@@ -444,16 +623,11 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
 
   const getSetaHeroi = (dir: number) => {
     switch (dir) {
-      case 0:
-        return '▲'; // Cima
-      case 1:
-        return '▶'; // Direita
-      case 2:
-        return '▼'; // Baixo
-      case 3:
-        return '◀'; // Esquerda
-      default:
-        return '▶';
+      case 0: return '▲';
+      case 1: return '▶';
+      case 2: return '▼';
+      case 3: return '◀';
+      default: return '▶';
     }
   };
 
@@ -476,11 +650,11 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
 
   return (
     <div className="space-y-6">
-      {/* Seletor dos 4 Desafios */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-quest-border">
+      {/* Seletor dos 8 Desafios */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-3 rounded-2xl border border-quest-border shadow-lg">
         <div className="flex items-center gap-2">
           <Compass className="w-5 h-5 text-indigo-400 shrink-0" />
-          <span className="text-xs sm:text-sm font-bold text-white">Fases do Laboratório:</span>
+          <span className="text-xs sm:text-sm font-bold text-white">8 Desafios em Blocos:</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -489,14 +663,14 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
               key={d.id}
               onClick={() => !emExecucao && setDesafioId(d.id)}
               disabled={emExecucao}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
                 d.id === desafioId
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white'
               }`}
             >
               <span>Fase {d.id}</span>
-              <span className="text-[10px] text-amber-300">+{d.xp}XP</span>
+              <span className="text-[10px] text-amber-300 font-mono">+{d.xp}XP</span>
             </button>
           ))}
         </div>
@@ -506,7 +680,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
       <Card className="border-quest-border bg-slate-900/90 shadow-xl">
         <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
               <Badge variant="purple">Programação em Blocos (ScratchQuest)</Badge>
               <Badge variant="cyan">{desafio.titulo}</Badge>
               <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
@@ -528,7 +702,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
               disabled={emExecucao}
               className="text-xs"
             >
-              Carregar Dica de Blocos
+              Dica de Blocos
             </Button>
             <Button
               variant="ghost"
@@ -537,7 +711,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
               disabled={emExecucao || scriptBlocos.length === 0}
               className="text-xs text-red-400 hover:text-red-300"
             >
-              Limpar Blocos
+              Limpar
             </Button>
           </div>
         </CardContent>
@@ -638,14 +812,13 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
               </div>
             </div>
 
-            {/* Lista Vertical de Blocos Encaixados */}
             <div className="flex-1 space-y-2 overflow-y-auto max-h-[420px] pr-1">
               {scriptBlocos.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-800 rounded-xl text-slate-500">
                   <Layers className="w-10 h-10 mb-2 opacity-40 text-indigo-400" />
                   <p className="text-xs font-medium text-slate-400">Seu algoritmo está vazio</p>
                   <p className="text-[11px] text-slate-500 mt-1 max-w-[200px]">
-                    Clique nos blocos coloridos da paleta à esquerda para montar a sequência lógica do herói!
+                    Clique nos blocos coloridos da paleta à esquerda para montar a sequência do herói!
                   </p>
                 </div>
               ) : (
@@ -703,10 +876,8 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
         {/* 3. PALCO DE SIMULAÇÃO (STAGE) DO SCRATCHQUEST (Col 5) */}
         <div className="lg:col-span-5 space-y-4">
           <div className="p-4 rounded-2xl bg-slate-900/90 border border-quest-border shadow-lg space-y-3">
-            {/* Controles do Palco estilo Scratch */}
             <div className="flex items-center justify-between border-b border-quest-border pb-3">
               <div className="flex items-center gap-2">
-                {/* Botão Bandeira Verde (Play) */}
                 <button
                   type="button"
                   onClick={executarAlgoritmo}
@@ -718,7 +889,6 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
                   <span>Executar</span>
                 </button>
 
-                {/* Botão Parar / Resetar */}
                 <button
                   type="button"
                   onClick={reiniciarPalco}
@@ -731,26 +901,42 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
                 </button>
               </div>
 
-              {/* Seletor de Velocidade */}
-              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
+              <div className="flex items-center gap-2">
+                {/* Botão de Som */}
                 <button
                   type="button"
-                  onClick={() => setVelocidade('normal')}
-                  className={`px-2 py-0.5 rounded ${velocidade === 'normal' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}
+                  onClick={() => setSomAtivo(!somAtivo)}
+                  className={`p-1.5 rounded-lg border text-xs transition ${
+                    somAtivo
+                      ? 'bg-indigo-950/80 border-indigo-700 text-indigo-300'
+                      : 'bg-slate-950 border-slate-800 text-slate-500'
+                  }`}
+                  title={somAtivo ? 'Efeitos Sonoros Ativos' : 'Som Mudo'}
                 >
-                  1x
+                  {somAtivo ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setVelocidade('rapida')}
-                  className={`px-2 py-0.5 rounded ${velocidade === 'rapida' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}
-                >
-                  2x
-                </button>
+
+                {/* Seletor de Velocidade */}
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setVelocidade('normal')}
+                    className={`px-2 py-0.5 rounded ${velocidade === 'normal' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}
+                  >
+                    1x
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVelocidade('rapida')}
+                    className={`px-2 py-0.5 rounded ${velocidade === 'rapida' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400'}`}
+                  >
+                    2x
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* TABULEIRO / GRID 2D */}
+            {/* TABULEIRO / GRID 2D ANIMADO */}
             <div className="flex items-center justify-center p-2 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-inner">
               <div
                 className="grid gap-1.5 p-2"
@@ -858,7 +1044,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
               </div>
               <CardTitle className="text-2xl text-white">Algoritmo Aprovado!</CardTitle>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                Parabéns! Você resolveu com êxito o <strong>{desafio.titulo}</strong> montando blocos visuais!
+                Parabéns! Você resolveu com maestria o <strong>{desafio.titulo}</strong> montando blocos visuais!
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -875,7 +1061,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
               </div>
 
               <div className="flex flex-col gap-2 pt-2">
-                {desafio.id < 4 ? (
+                {desafio.id < 8 ? (
                   <Button
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold gap-2"
                     onClick={() => {
@@ -883,7 +1069,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
                       setDesafioId(desafio.id + 1);
                     }}
                   >
-                    <span>Avançar para a Fase {desafio.id + 1}</span>
+                    <span>Avançar para o Desafio {desafio.id + 1}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 ) : (
@@ -891,7 +1077,7 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
                     onClick={() => setModalVitoria(false)}
                   >
-                    Você Dominou a Programação em Blocos!
+                    🏆 Você Venceu Todos os 8 Desafios em Blocos!
                   </Button>
                 )}
 
@@ -910,4 +1096,3 @@ export function ScratchBlockEditor({ desafioInicialId = 1, onConcluirDesafio }: 
     </div>
   );
 }
-
