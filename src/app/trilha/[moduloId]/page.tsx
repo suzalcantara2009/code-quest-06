@@ -25,6 +25,10 @@ import { AulasBlocos } from '@/components/blocos/AulasBlocos';
 import { ScratchBlockEditor } from '@/components/blocos/ScratchBlockEditor';
 import { AulasPython } from '@/components/python/AulasPython';
 import { PythonIDE } from '@/components/python/PythonIDE';
+import { AulasHtmlCss } from '@/components/web/AulasHtmlCss';
+import { WebPlayground } from '@/components/web/WebPlayground';
+import { AulasJavaScript } from '@/components/javascript/AulasJavaScript';
+import { JavaScriptIDE } from '@/components/javascript/JavaScriptIDE';
 
 export default function ModuloDetalhesPage({ params }: { params: { moduloId: string } }) {
   const moduloId = parseInt(params.moduloId, 10);
@@ -40,6 +44,14 @@ export default function ModuloDetalhesPage({ params }: { params: { moduloId: str
   // Abas do Módulo 2 (Python): 'aulas' | 'laboratorio' | 'missoes'
   const [abaPython, setAbaPython] = useState<'aulas' | 'laboratorio' | 'missoes'>('aulas');
   const [fasePythonId, setFasePythonId] = useState<number>(1);
+
+  // Abas do Módulo 3 (HTML & CSS): 'aulas' | 'laboratorio' | 'missoes'
+  const [abaHtmlCss, setAbaHtmlCss] = useState<'aulas' | 'laboratorio' | 'missoes'>('aulas');
+  const [faseHtmlCssId, setFaseHtmlCssId] = useState<number>(1);
+
+  // Abas do Módulo 4 (JavaScript): 'aulas' | 'laboratorio' | 'missoes'
+  const [abaJavaScript, setAbaJavaScript] = useState<'aulas' | 'laboratorio' | 'missoes'>('aulas');
+  const [faseJavaScriptId, setFaseJavaScriptId] = useState<number>(1);
 
   useEffect(() => {
     try {
@@ -92,6 +104,16 @@ export default function ModuloDetalhesPage({ params }: { params: { moduloId: str
     setAbaPython('laboratorio');
   };
 
+  const handleIrParaLaboratorioHtmlCss = (desafioId?: number) => {
+    if (desafioId) setFaseHtmlCssId(desafioId);
+    setAbaHtmlCss('laboratorio');
+  };
+
+  const handleIrParaLaboratorioJavaScript = (desafioId?: number) => {
+    if (desafioId) setFaseJavaScriptId(desafioId);
+    setAbaJavaScript('laboratorio');
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 w-full flex-1">
       <div className="mb-6">
@@ -115,6 +137,8 @@ export default function ModuloDetalhesPage({ params }: { params: { moduloId: str
                     <Badge variant="purple">{modulo.tecnologia}</Badge>
                     {modulo.id === 1 && <Badge variant="cyan">Ambiente Scratch Interativo</Badge>}
                     {modulo.id === 2 && <Badge variant="cyan">Plataforma IDE Python & Terminal</Badge>}
+                    {modulo.id === 3 && <Badge variant="success">Laboratório Web HTML5 & CSS3</Badge>}
+                    {modulo.id === 4 && <Badge variant="warning">Plataforma JavaScript ES2024</Badge>}
                   </div>
                   <CardTitle className="text-2xl sm:text-3xl mt-1 text-white">{modulo.titulo}</CardTitle>
                 </div>
@@ -461,72 +485,332 @@ export default function ModuloDetalhesPage({ params }: { params: { moduloId: str
           </div>
         )}
 
-        {/* 3. DEMAIS MÓDULOS (HTML/CSS E JAVASCRIPT) */}
-        {modulo.id > 2 && (
+        {/* 3. MÓDULO 3: HTML E CSS (PERGAMINHO & WEBSANDBOX) */}
+        {modulo.id === 3 && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2 border-b border-quest-border pb-3">
+              <button
+                onClick={() => setAbaHtmlCss('aulas')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                  abaHtmlCss === 'aulas'
+                    ? 'bg-emerald-600 text-slate-950 shadow-md shadow-emerald-600/30 font-black'
+                    : 'bg-slate-900 text-slate-300 border border-quest-border hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>1. Aulas Explicativas (HTML & CSS)</span>
+              </button>
+
+              <button
+                onClick={() => setAbaHtmlCss('laboratorio')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                  abaHtmlCss === 'laboratorio'
+                    ? 'bg-emerald-600 text-slate-950 shadow-md shadow-emerald-600/30 font-black'
+                    : 'bg-slate-900 text-slate-300 border border-quest-border hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <FileCode className="w-4 h-4" />
+                <span>2. Laboratório Web (HTML & CSS Playground)</span>
+              </button>
+
+              <button
+                onClick={() => setAbaHtmlCss('missoes')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                  abaHtmlCss === 'missoes'
+                    ? 'bg-emerald-600 text-slate-950 shadow-md shadow-emerald-600/30 font-black'
+                    : 'bg-slate-900 text-slate-300 border border-quest-border hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Target className="w-4 h-4" />
+                <span>3. Catálogo de Desafios ({missoesModulo.length})</span>
+              </button>
+            </div>
+
+            {abaHtmlCss === 'aulas' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-emerald-400" />
+                    <span>Aulas Interativas: HTML5 Semântico, Box Model e Flexbox/Grid</span>
+                  </h2>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAbaHtmlCss('laboratorio')}
+                    className="text-xs gap-1.5"
+                  >
+                    <span>Abrir Laboratório Web</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <AulasHtmlCss onIrParaLaboratorio={handleIrParaLaboratorioHtmlCss} />
+              </div>
+            )}
+
+            {abaHtmlCss === 'laboratorio' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <FileCode className="w-5 h-5 text-emerald-400" />
+                      <span>Laboratório de Código Web: HTML5 & CSS3 (8 Fases)</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Edite as tags HTML e as regras CSS com preview visual imediato e testes automatizados.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAbaHtmlCss('aulas')}
+                    className="text-xs gap-1.5"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Rever Aulas</span>
+                  </Button>
+                </div>
+                <WebPlayground desafioInicialId={faseHtmlCssId} />
+              </div>
+            )}
+
+            {abaHtmlCss === 'missoes' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Target className="w-5 h-5 text-emerald-400" />
+                    <span>Missões Oficiais de HTML e CSS</span>
+                  </h2>
+                  <Link href={`/missoes?modulo_id=${modulo.id}`}>
+                    <span className="text-xs text-emerald-400 hover:text-emerald-300 transition hover:underline">
+                      Filtrar no catálogo geral
+                    </span>
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {missoesModulo.map((m) => {
+                    const estaConcluida = missoesConcluidas.includes(m.id);
+                    return (
+                      <Card
+                        key={m.id}
+                        className={`hover:border-emerald-500/60 transition-colors bg-slate-900/70 ${
+                          estaConcluida ? 'border-emerald-500/40' : ''
+                        }`}
+                      >
+                        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  m.dificuldade === 'facil' ? 'cyan' : m.dificuldade === 'medio' ? 'warning' : 'danger'
+                                }
+                              >
+                                {m.dificuldade.toUpperCase()}
+                              </Badge>
+                              <span className="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5" />
+                                +{m.xp} XP
+                              </span>
+                              {estaConcluida && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                                  <CheckCircle2 className="w-3 h-3" /> Concluída
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="text-base font-bold text-white hover:text-emerald-400 transition-colors">
+                              <Link href={`/missoes/${m.id}`}>{m.titulo}</Link>
+                            </h3>
+                            <p className="text-xs text-slate-400 line-clamp-2">{m.enunciado}</p>
+                          </div>
+
+                          <Link href={`/missoes/${m.id}`} className="shrink-0">
+                            <Button
+                              size="sm"
+                              variant={estaConcluida ? 'outline' : 'primary'}
+                              className="text-xs gap-1.5 w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold"
+                            >
+                              <span>{estaConcluida ? 'Revisar no Laboratório' : 'Resolver em HTML/CSS'}</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. MÓDULO 4: JAVASCRIPT (DOM & JAVASCRIPT IDE) */}
+        {modulo.id === 4 && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2 border-b border-quest-border pb-3">
+              <button
+                onClick={() => setAbaJavaScript('aulas')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                  abaJavaScript === 'aulas'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 font-black'
+                    : 'bg-slate-900 text-slate-300 border border-quest-border hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>1. Aulas Explicativas (JavaScript Moderno)</span>
+              </button>
+
+              <button
+                onClick={() => setAbaJavaScript('laboratorio')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                  abaJavaScript === 'laboratorio'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 font-black'
+                    : 'bg-slate-900 text-slate-300 border border-quest-border hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Terminal className="w-4 h-4" />
+                <span>2. Laboratório JavaScript (IDE & DOM Sandbox)</span>
+              </button>
+
+              <button
+                onClick={() => setAbaJavaScript('missoes')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition ${
+                  abaJavaScript === 'missoes'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 font-black'
+                    : 'bg-slate-900 text-slate-300 border border-quest-border hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Target className="w-4 h-4" />
+                <span>3. Catálogo de Desafios ({missoesModulo.length})</span>
+              </button>
+            </div>
+
+            {abaJavaScript === 'aulas' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-amber-400" />
+                    <span>Aulas Interativas: DOM, Eventos, Arrays Funcionais e Async/Await</span>
+                  </h2>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAbaJavaScript('laboratorio')}
+                    className="text-xs gap-1.5"
+                  >
+                    <span>Abrir Laboratório JS</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <AulasJavaScript onIrParaLaboratorio={handleIrParaLaboratorioJavaScript} />
+              </div>
+            )}
+
+            {abaJavaScript === 'laboratorio' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <Terminal className="w-5 h-5 text-amber-400" />
+                      <span>Laboratório de Código JavaScript ES2024 (8 Fases)</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Escreva scripts JavaScript, manipule o DOM ao vivo e execute testes automatizados com stdout interativo.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAbaJavaScript('aulas')}
+                    className="text-xs gap-1.5"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Rever Aulas</span>
+                  </Button>
+                </div>
+                <JavaScriptIDE desafioInicialId={faseJavaScriptId} />
+              </div>
+            )}
+
+            {abaJavaScript === 'missoes' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Target className="w-5 h-5 text-amber-400" />
+                    <span>Missões Oficiais de JavaScript</span>
+                  </h2>
+                  <Link href={`/missoes?modulo_id=${modulo.id}`}>
+                    <span className="text-xs text-amber-400 hover:text-amber-300 transition hover:underline">
+                      Filtrar no catálogo geral
+                    </span>
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {missoesModulo.map((m) => {
+                    const estaConcluida = missoesConcluidas.includes(m.id);
+                    return (
+                      <Card
+                        key={m.id}
+                        className={`hover:border-amber-500/60 transition-colors bg-slate-900/70 ${
+                          estaConcluida ? 'border-emerald-500/40' : ''
+                        }`}
+                      >
+                        <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  m.dificuldade === 'facil' ? 'cyan' : m.dificuldade === 'medio' ? 'warning' : 'danger'
+                                }
+                              >
+                                {m.dificuldade.toUpperCase()}
+                              </Badge>
+                              <span className="text-xs font-semibold text-amber-400 flex items-center gap-1">
+                                <Sparkles className="w-3.5 h-3.5" />
+                                +{m.xp} XP
+                              </span>
+                              {estaConcluida && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+                                  <CheckCircle2 className="w-3 h-3" /> Concluída
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="text-base font-bold text-white hover:text-amber-400 transition-colors">
+                              <Link href={`/missoes/${m.id}`}>{m.titulo}</Link>
+                            </h3>
+                            <p className="text-xs text-slate-400 line-clamp-2">{m.enunciado}</p>
+                          </div>
+
+                          <Link href={`/missoes/${m.id}`} className="shrink-0">
+                            <Button
+                              size="sm"
+                              variant={estaConcluida ? 'outline' : 'primary'}
+                              className="text-xs gap-1.5 w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+                            >
+                              <span>{estaConcluida ? 'Revisar no Laboratório' : 'Resolver em JavaScript'}</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 5. DEMAIS MÓDULOS (CASO EXISTA NO FUTURO) */}
+        {modulo.id > 4 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Target className="w-5 h-5 text-indigo-400" />
                 <span>Missões Práticas deste Módulo ({missoesModulo.length})</span>
               </h2>
-              <Link href={`/missoes?modulo_id=${modulo.id}`}>
-                <span className="text-xs text-indigo-400 hover:text-indigo-300 transition hover:underline">
-                  Filtrar no catálogo geral
-                </span>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {missoesModulo.map((m) => {
-                const estaConcluida = missoesConcluidas.includes(m.id);
-                return (
-                  <Card
-                    key={m.id}
-                    className={`hover:border-indigo-500/60 transition-colors bg-slate-900/70 ${
-                      estaConcluida ? 'border-emerald-500/40' : ''
-                    }`}
-                  >
-                    <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1.5 flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              m.dificuldade === 'facil' ? 'cyan' : m.dificuldade === 'medio' ? 'warning' : 'danger'
-                            }
-                          >
-                            {m.dificuldade.toUpperCase()}
-                          </Badge>
-                          <span className="text-xs font-semibold text-amber-400 flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            +{m.xp} XP
-                          </span>
-                          {estaConcluida && (
-                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
-                              <CheckCircle2 className="w-3 h-3" /> Concluída
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="text-base font-bold text-white hover:text-indigo-400 transition-colors">
-                          <Link href={`/missoes/${m.id}`}>{m.titulo}</Link>
-                        </h3>
-                        <p className="text-xs text-slate-400 line-clamp-2">{m.enunciado}</p>
-                      </div>
-
-                      <Link href={`/missoes/${m.id}`} className="shrink-0">
-                        <Button
-                          size="sm"
-                          variant={estaConcluida ? 'outline' : 'primary'}
-                          className="text-xs gap-1.5 w-full sm:w-auto"
-                        >
-                          <span>{estaConcluida ? 'Revisar Missão' : 'Iniciar Missão'}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                );
-              })}
             </div>
           </div>
         )}

@@ -27,6 +27,8 @@ import { Toast } from '@/components/ui/Toast';
 import { MISSOES_CATALOGO, MissaoCompleta } from '@/data/missoes';
 import { ScratchBlockEditor } from '@/components/blocos/ScratchBlockEditor';
 import { PythonIDE } from '@/components/python/PythonIDE';
+import { WebPlayground } from '@/components/web/WebPlayground';
+import { JavaScriptIDE } from '@/components/javascript/JavaScriptIDE';
 
 export default function MissaoDetalhesPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -156,6 +158,24 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
             </Link>
           )}
 
+          {missao.modulo_id === 3 && (
+            <Link href="/trilha/3">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-emerald-700/60 text-emerald-300 hover:bg-emerald-950/40">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Ver Aulas de HTML/CSS</span>
+              </Button>
+            </Link>
+          )}
+
+          {missao.modulo_id === 4 && (
+            <Link href="/trilha/4">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-amber-700/60 text-amber-300 hover:bg-amber-950/40">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Ver Aulas de JavaScript</span>
+              </Button>
+            </Link>
+          )}
+
           {jaConcluida && (
             <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-full font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -212,6 +232,56 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
 
           <PythonIDE
             desafioInicialId={Math.max(1, missao.id - 4)}
+            onConcluirDesafio={() => setJaConcluida(true)}
+          />
+        </div>
+      ) : missao.modulo_id === 3 ? (
+        /* SE FOR DO MÓDULO 3 (HTML E CSS), RENDERIZA O LABORATÓRIO WEB PLAYGROUND */
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Code2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-emerald-300 block">Laboratório Interativo Web: HTML5 & CSS3</span>
+                <span className="text-xs text-slate-300">
+                  Edite a marcação e os estilos na sandbox com renderização visual ao vivo e testes de conformidade.
+                </span>
+              </div>
+            </div>
+            <Link href="/trilha/3">
+              <Button size="sm" variant="ghost" className="text-xs text-emerald-300 hover:text-white shrink-0">
+                Aulas de HTML & CSS ➔
+              </Button>
+            </Link>
+          </div>
+
+          <WebPlayground
+            desafioInicialId={Math.max(1, missao.id - 8)}
+            onConcluirDesafio={() => setJaConcluida(true)}
+          />
+        </div>
+      ) : missao.modulo_id === 4 ? (
+        /* SE FOR DO MÓDULO 4 (JAVASCRIPT), RENDERIZA A PLATAFORMA JAVASCRIPT IDE */
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Terminal className="w-5 h-5 text-amber-400 shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-amber-300 block">Plataforma Interativa JavaScript ES2024 & DOM Sandbox</span>
+                <span className="text-xs text-slate-300">
+                  Escreva scripts reativos, manipule elementos da interface ao vivo e valide os critérios no console interativo.
+                </span>
+              </div>
+            </div>
+            <Link href="/trilha/4">
+              <Button size="sm" variant="ghost" className="text-xs text-amber-300 hover:text-white shrink-0">
+                Aulas de JavaScript ➔
+              </Button>
+            </Link>
+          </div>
+
+          <JavaScriptIDE
+            desafioInicialId={Math.max(1, missao.id - 12)}
             onConcluirDesafio={() => setJaConcluida(true)}
           />
         </div>
