@@ -18,6 +18,7 @@ import {
   RotateCcw,
   BookOpen,
   Puzzle,
+  Terminal,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -25,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
 import { MISSOES_CATALOGO, MissaoCompleta } from '@/data/missoes';
 import { ScratchBlockEditor } from '@/components/blocos/ScratchBlockEditor';
+import { PythonIDE } from '@/components/python/PythonIDE';
 
 export default function MissaoDetalhesPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -42,7 +44,6 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // Buscar da API caso exista no banco
     fetch(`/api/missoes/${params.id}`)
       .then((res) => res.json())
       .then((data) => {
@@ -53,7 +54,6 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
       })
       .catch(() => {});
 
-    // Verificar se já foi concluída no localStorage
     try {
       const salvas = localStorage.getItem('codequest_missoes_concluidas');
       if (salvas) {
@@ -105,7 +105,6 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
       setJaConcluida(true);
       setSucessoModal(true);
 
-      // Salvar conclusão no localStorage
       try {
         const salvas = localStorage.getItem('codequest_missoes_concluidas');
         const ids: number[] = salvas ? JSON.parse(salvas) : [];
@@ -148,6 +147,15 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
             </Link>
           )}
 
+          {missao.modulo_id === 2 && (
+            <Link href="/trilha/2">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-cyan-700/60 text-cyan-300 hover:bg-cyan-950/40">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Ver Aulas de Python</span>
+              </Button>
+            </Link>
+          )}
+
           {jaConcluida && (
             <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-full font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -182,8 +190,33 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
             onConcluirDesafio={() => setJaConcluida(true)}
           />
         </div>
+      ) : missao.modulo_id === 2 ? (
+        /* SE FOR DO MÓDULO 2 (PYTHON), RENDERIZA A PLATAFORMA IDE PYTHON & CONSOLE */
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Terminal className="w-5 h-5 text-cyan-400 shrink-0" />
+              <div>
+                <span className="text-xs font-bold text-cyan-300 block">Plataforma Interativa de Desenvolvimento Python 3.12</span>
+                <span className="text-xs text-slate-300">
+                  Escreva o código no editor, execute e confira a saída em tempo real no console com validação automatizada.
+                </span>
+              </div>
+            </div>
+            <Link href="/trilha/2">
+              <Button size="sm" variant="ghost" className="text-xs text-cyan-300 hover:text-white shrink-0">
+                Aulas de Python ➔
+              </Button>
+            </Link>
+          </div>
+
+          <PythonIDE
+            desafioInicialId={Math.max(1, missao.id - 4)}
+            onConcluirDesafio={() => setJaConcluida(true)}
+          />
+        </div>
       ) : (
-        /* PARA OS OUTROS MÓDULOS (PYTHON, HTML, JS), RENDERIZA O CARD PADRÃO */
+        /* DEMAIS MÓDULOS (HTML/CSS E JAVASCRIPT) */
         <div className="space-y-6">
           <Card className="border-quest-border bg-slate-900/90 shadow-2xl">
             <CardHeader className="pb-4 border-b border-quest-border">
@@ -215,7 +248,6 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
             </CardHeader>
 
             <CardContent className="space-y-6 pt-6">
-              {/* Critério de Aceite */}
               <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-900/80 text-sm text-indigo-300 flex items-start gap-3">
                 <ShieldAlert className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                 <div>
@@ -226,7 +258,6 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
                 </div>
               </div>
 
-              {/* Dica do Mestre */}
               {missao.dica && (
                 <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-900/60 text-xs sm:text-sm text-amber-300 flex items-start gap-3">
                   <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
@@ -237,12 +268,11 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
                 </div>
               )}
 
-              {/* Editor de Código Tradicional para Python/HTML/JS */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                     <Code2 className="w-4 h-4 text-indigo-400" />
-                    Editor de Código da Missão ({missao.tecnologia})
+                    Editor de Código ({missao.tecnologia})
                   </label>
                   <div className="flex items-center gap-2">
                     <button
@@ -275,7 +305,6 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
                 </div>
               </div>
 
-              {/* Ações de Submissão */}
               <div className="pt-4 border-t border-quest-border flex flex-col sm:flex-row items-center justify-between gap-3">
                 <Link href="/missoes" className="w-full sm:w-auto">
                   <Button variant="ghost" className="w-full sm:w-auto">
