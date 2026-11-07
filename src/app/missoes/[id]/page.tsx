@@ -16,12 +16,15 @@ import {
   ArrowRight,
   Code2,
   RotateCcw,
+  BookOpen,
+  Puzzle,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
-import { MISSOES_CATALOGO, MODULOS_NICHOS, MissaoCompleta } from '@/data/missoes';
+import { MISSOES_CATALOGO, MissaoCompleta } from '@/data/missoes';
+import { ScratchBlockEditor } from '@/components/blocos/ScratchBlockEditor';
 
 export default function MissaoDetalhesPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -117,7 +120,7 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
   const proximaMissaoId = missao.id < 16 ? missao.id + 1 : null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 w-full flex-1">
+    <div className="max-w-5xl mx-auto px-4 py-8 w-full flex-1">
       {/* Toast de notificação */}
       {toastMsg && (
         <div className="fixed top-6 right-6 z-50">
@@ -126,7 +129,7 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
       )}
 
       {/* Navegação de Retorno */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
           href="/missoes"
           className="text-slate-400 hover:text-white text-sm inline-flex items-center gap-1.5 transition-colors"
@@ -135,122 +138,166 @@ export default function MissaoDetalhesPage({ params }: { params: { id: string } 
           Voltar para o Catálogo de Missões
         </Link>
 
-        {jaConcluida && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-full font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Missão Concluída (+{missao.xp} XP)
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {missao.modulo_id === 1 && (
+            <Link href="/trilha/1">
+              <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Ver Aulas de Blocos</span>
+              </Button>
+            </Link>
+          )}
+
+          {jaConcluida && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-full font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Missão Concluída (+{missao.xp} XP)
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {/* Card Principal da Missão */}
-        <Card className="border-quest-border bg-slate-900/90 shadow-2xl">
-          <CardHeader className="pb-4 border-b border-quest-border">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="purple">{missao.nicho}</Badge>
-                <Badge variant={missao.dificuldade === 'facil' ? 'cyan' : missao.dificuldade === 'medio' ? 'warning' : 'danger'}>
-                  Dificuldade: {missao.dificuldade.toUpperCase()}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-900/60 px-2.5 py-1 rounded-lg">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Recompensa: +{missao.xp} XP</span>
-              </div>
-            </div>
-
-            <CardTitle className="text-2xl sm:text-3xl text-white">
-              {missao.titulo}
-            </CardTitle>
-            <CardDescription className="text-sm text-slate-300 mt-2 leading-relaxed">
-              {missao.enunciado}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-6 pt-6">
-            {/* Critério de Aceite */}
-            <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-900/80 text-sm text-indigo-300 flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+      {/* SE FOR DO MÓDULO 1 (PROGRAMAÇÃO EM BLOCOS), RENDERIZA O LABORATÓRIO SCRATCHQUEST VISUAL */}
+      {missao.modulo_id === 1 ? (
+        <div className="space-y-6">
+          <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <Puzzle className="w-5 h-5 text-indigo-400 shrink-0" />
               <div>
-                <strong className="text-white block mb-0.5">Critério de Aceite:</strong>
-                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                  {missao.criterio_aceite}
-                </p>
+                <span className="text-xs font-bold text-indigo-300 block">Modo Visual de Programação em Blocos</span>
+                <span className="text-xs text-slate-300">
+                  Encaixe as peças de quebra-cabeça na área de scripts e aperte o botão Executar para mover o herói no tabuleiro!
+                </span>
               </div>
             </div>
+            <Link href="/trilha/1">
+              <Button size="sm" variant="ghost" className="text-xs text-indigo-300 hover:text-white shrink-0">
+                Aulas Explicativas ➔
+              </Button>
+            </Link>
+          </div>
 
-            {/* Dica do Mestre */}
-            {missao.dica && (
-              <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-900/60 text-xs sm:text-sm text-amber-300 flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-amber-200 block mb-0.5">Dica Pedagógica do Mestre:</strong>
-                  <p className="text-slate-300 leading-relaxed">{missao.dica}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Editor / Visualizador de Código */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Code2 className="w-4 h-4 text-indigo-400" />
-                  Editor de Código da Missão ({missao.tecnologia})
-                </label>
+          <ScratchBlockEditor
+            desafioInicialId={missao.id}
+            onConcluirDesafio={() => setJaConcluida(true)}
+          />
+        </div>
+      ) : (
+        /* PARA OS OUTROS MÓDULOS (PYTHON, HTML, JS), RENDERIZA O CARD PADRÃO */
+        <div className="space-y-6">
+          <Card className="border-quest-border bg-slate-900/90 shadow-2xl">
+            <CardHeader className="pb-4 border-b border-quest-border">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={restaurarCodigo}
-                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition px-2 py-1 rounded hover:bg-slate-800"
+                  <Badge variant="purple">{missao.nicho}</Badge>
+                  <Badge
+                    variant={
+                      missao.dificuldade === 'facil'
+                        ? 'cyan'
+                        : missao.dificuldade === 'medio'
+                        ? 'warning'
+                        : 'danger'
+                    }
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    Restaurar Original
-                  </button>
-                  <button
-                    type="button"
-                    onClick={copiarCodigo}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-2 py-1 rounded hover:bg-slate-800"
-                  >
-                    {copiado ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
-                  </button>
+                    Dificuldade: {missao.dificuldade.toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-900/60 px-2.5 py-1 rounded-lg">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Recompensa: +{missao.xp} XP</span>
                 </div>
               </div>
 
-              <div className="relative rounded-xl border border-slate-700 bg-slate-950 p-4 font-mono text-sm text-slate-200 focus-within:border-indigo-500 shadow-inner">
-                <textarea
-                  value={codigo}
-                  onChange={(e) => setCodigo(e.target.value)}
-                  rows={9}
-                  className="w-full bg-transparent resize-y outline-none font-mono text-xs sm:text-sm text-slate-200 leading-relaxed"
-                  placeholder="Escreva sua solução aqui..."
-                />
-              </div>
-            </div>
+              <CardTitle className="text-2xl sm:text-3xl text-white">{missao.titulo}</CardTitle>
+              <CardDescription className="text-sm text-slate-300 mt-2 leading-relaxed">
+                {missao.enunciado}
+              </CardDescription>
+            </CardHeader>
 
-            {/* Ações de Submissão */}
-            <div className="pt-4 border-t border-quest-border flex flex-col sm:flex-row items-center justify-between gap-3">
-              <Link href="/missoes" className="w-full sm:w-auto">
-                <Button variant="ghost" className="w-full sm:w-auto">
-                  Outras Missões
-                </Button>
-              </Link>
-
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <Button
-                  onClick={handleSubmeter}
-                  isLoading={submetendo}
-                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-semibold gap-2 shadow-lg shadow-indigo-600/30"
-                >
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>{jaConcluida ? 'Validar Novamente' : 'Testar e Concluir Missão'}</span>
-                </Button>
+            <CardContent className="space-y-6 pt-6">
+              {/* Critério de Aceite */}
+              <div className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-900/80 text-sm text-indigo-300 flex items-start gap-3">
+                <ShieldAlert className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-white block mb-0.5">Critério de Aceite:</strong>
+                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    {missao.criterio_aceite}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+
+              {/* Dica do Mestre */}
+              {missao.dica && (
+                <div className="p-4 rounded-xl bg-amber-950/30 border border-amber-900/60 text-xs sm:text-sm text-amber-300 flex items-start gap-3">
+                  <Lightbulb className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-amber-200 block mb-0.5">Dica Pedagógica do Mestre:</strong>
+                    <p className="text-slate-300 leading-relaxed">{missao.dica}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Editor de Código Tradicional para Python/HTML/JS */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <Code2 className="w-4 h-4 text-indigo-400" />
+                    Editor de Código da Missão ({missao.tecnologia})
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={restaurarCodigo}
+                      className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition px-2 py-1 rounded hover:bg-slate-800"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Restaurar Original
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copiarCodigo}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition px-2 py-1 rounded hover:bg-slate-800"
+                    >
+                      {copiado ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative rounded-xl border border-slate-700 bg-slate-950 p-4 font-mono text-sm text-slate-200 focus-within:border-indigo-500 shadow-inner">
+                  <textarea
+                    value={codigo}
+                    onChange={(e) => setCodigo(e.target.value)}
+                    rows={9}
+                    className="w-full bg-transparent resize-y outline-none font-mono text-xs sm:text-sm text-slate-200 leading-relaxed"
+                    placeholder="Escreva sua solução aqui..."
+                  />
+                </div>
+              </div>
+
+              {/* Ações de Submissão */}
+              <div className="pt-4 border-t border-quest-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                <Link href="/missoes" className="w-full sm:w-auto">
+                  <Button variant="ghost" className="w-full sm:w-auto">
+                    Outras Missões
+                  </Button>
+                </Link>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <Button
+                    onClick={handleSubmeter}
+                    isLoading={submetendo}
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-semibold gap-2 shadow-lg shadow-indigo-600/30"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>{jaConcluida ? 'Validar Novamente' : 'Testar e Concluir Missão'}</span>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Modal de Conclusão / Comemoração */}
       {sucessoModal && (
