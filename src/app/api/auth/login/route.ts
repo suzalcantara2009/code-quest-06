@@ -3,6 +3,8 @@ import { loginSchema } from '@/lib/validations/auth';
 import { prisma } from '@/lib/db';
 import { verificarSenha, criarSessao, SESSION_COOKIE_NAME } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
       value: sessionToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60, // 7 dias de validade
     });

@@ -100,10 +100,10 @@ export default function CadastroPage() {
         return;
       }
 
-      setToastSucesso('Conta criada e salva com sucesso no banco de dados! Redirecionando...');
+      setToastSucesso('Conta criada e salva no banco de dados! Entrando na plataforma...');
       setTimeout(() => {
-        router.push(`/login?email=${encodeURIComponent(email)}&cadastrado=true`);
-      }, 1200);
+        router.push('/trilha');
+      }, 1000);
     } catch (err) {
       setErroGeral('Não foi possível conectar ao servidor. Tente novamente mais tarde.');
     } finally {
@@ -144,9 +144,18 @@ export default function CadastroPage() {
 
           <CardContent>
             {erroGeral && (
-              <div className="mb-4 p-3 rounded-lg bg-red-950/60 border border-red-800 text-red-300 text-xs flex items-center gap-2 animate-in fade-in">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-                <span>{erroGeral}</span>
+              <div className="mb-4 p-3.5 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                  <span>{erroGeral}</span>
+                </div>
+                {erroGeral.includes('Já existe') && (
+                  <Link href={`/login?email=${encodeURIComponent(email)}`}>
+                    <Button size="sm" variant="outline" className="text-xs shrink-0 border-indigo-500 text-indigo-300">
+                      Ir para Login ➔
+                    </Button>
+                  </Link>
+                )}
               </div>
             )}
 

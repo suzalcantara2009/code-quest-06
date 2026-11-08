@@ -3,6 +3,8 @@ import { cadastroSchema } from '@/lib/validations/auth';
 import { prisma } from '@/lib/db';
 import { hashSenha, criarSessao, SESSION_COOKIE_NAME } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -58,7 +60,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json(
       {
         sucesso: true,
-        mensagem: 'Conta criada com sucesso!',
+        mensagem: 'Conta criada e persistida no banco com sucesso!',
         usuario: novoUsuario,
       },
       { status: 201 }
@@ -69,16 +71,16 @@ export async function POST(request: Request) {
       value: sessionToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no cadastro:', error);
     return NextResponse.json(
-      { sucesso: false, mensagem: 'Erro interno ao realizar cadastro' },
+      { sucesso: false, mensagem: error?.message || 'Erro interno ao realizar cadastro no banco de dados' },
       { status: 500 }
     );
   }

@@ -22,8 +22,15 @@ export default function EsqueciSenhaPage() {
 
         <CardContent>
           {enviado ? (
-            <div className="p-4 bg-indigo-950/40 border border-indigo-800 rounded-lg text-sm text-indigo-300">
-              Se o e-mail existir, um link de recuperação de uso único válido por 1 hora será enviado em instantes.
+            <div className="space-y-4">
+              <div className="p-4 bg-indigo-950/40 border border-indigo-800 rounded-lg text-sm text-indigo-300">
+                Se o e-mail existir, as instruções foram preparadas para você.
+              </div>
+              <Link href={`/redefinir-senha?email=${encodeURIComponent(email)}`}>
+                <Button className="w-full bg-indigo-600 hover:bg-indigo-500 font-bold">
+                  Definir Nova Senha Imediatamente ➔
+                </Button>
+              </Link>
             </div>
           ) : (
             <form

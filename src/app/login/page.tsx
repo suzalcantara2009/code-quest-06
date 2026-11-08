@@ -79,10 +79,10 @@ function LoginForm() {
         return;
       }
 
-      setToastSucesso('Login efetuado com sucesso! Redirecionando para sua jornada...');
+      setToastSucesso('Login efetuado com sucesso! Redirecionando para a trilha...');
       setTimeout(() => {
-        router.push('/fichas');
-      }, 1200);
+        router.push('/trilha');
+      }, 1000);
     } catch (err) {
       setErroGeral('Não foi possível conectar ao servidor. Tente novamente mais tarde.');
     } finally {
