@@ -151,3 +151,60 @@ CREATE TABLE IF NOT EXISTS auditoria (
     detalhes TEXT,
     data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ========================================================
+-- Dados Iniciais (Seeds Obrigatórios para Inicialização)
+-- ========================================================
+
+-- Usuário fictício de teste (Senha: SenhaForte123!)
+INSERT INTO usuarios (id, nome, email, senha_hash, tipo, email_verificado, termos_aceitos_em, termos_versao)
+VALUES (
+    1,
+    'Aventureiro de Teste',
+    'aluno@codequest.dev',
+    '$2a$10$iWHF/0AWGjiIe4rtgjDATOTfNYT2XKTUxBL7CfYirCHr9N.86cnB2',
+    'estudante',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    '1.0'
+) ON CONFLICT (email) DO NOTHING;
+
+-- Módulos da Trilha Pedagógica
+INSERT INTO modulos (id, ordem, titulo, tecnologia, descricao) VALUES
+(1, 1, 'Módulo 1 — Programação em Blocos', 'Blocos / Lógica', 'Fundamentos de lógica algorítmica, variáveis, estruturas condicionais e laços de repetição visuais.'),
+(2, 2, 'Módulo 2 — Python', 'Python', 'Sintaxe limpa, estruturas de dados, funções, loops e modelagem orientada a objetos com scripts eficientes.'),
+(3, 3, 'Módulo 3 — HTML e CSS', 'HTML/CSS', 'Estruturação semântica, acessibilidade web, responsividade, Flexbox, Grid e animações visuais.'),
+(4, 4, 'Módulo 4 — JavaScript', 'JavaScript', 'Interatividade no navegador, manipulação de eventos e DOM, arrays modernos e consumo de APIs assíncronas.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Missões do Módulo 1: Blocos
+INSERT INTO missoes (id, modulo_id, titulo, enunciado, codigo_inicial, criterio_aceite, dificuldade) VALUES
+(1, 1, 'O Despertar do Algoritmo: A Sequência de Passos', 'Para abrir o Portão Ancestral, acenda as 3 tochas na ordem sequencial exata.', 'Avancar(1); AcenderTocha(1); Avancar(2); AcenderTocha(2); Avancar(1); AcenderTocha(3);', 'Executar a sequência sem pular etapas.', 'facil'),
+(2, 1, 'O Guardião das Pontes: Decisões com SE / SENÃO', 'Avalie se a ponte está abaixada para atravessar com segurança.', 'SE (ponte_abaixada == VERDADEIRO) ENTAO AtravessarPonte(); SENAO DesviarPeloAtalho(); FIM_SE', 'Tratar caminhos de sucesso e desvio.', 'medio'),
+(3, 1, 'O Labirinto dos Cristais: Repetições com ENQUANTO', 'Colete cristais enquanto a energia for inferior a 100.', 'ENQUANTO (energia < 100) FACA ColetarCristal(); energia = energia + 20; FIM_ENQUANTO', 'Condição de parada correta.', 'medio'),
+(4, 1, 'A Forja dos Autômatos: Funções e Modularização', 'Crie um bloco modular para forjar autômatos de defesa.', 'FUNCAO MontarGolem(tipo_runa, armadura) RETORNAR "Golem Criado"; FIM_FUNCAO', 'Encapsulamento com parâmetros.', 'dificil')
+ON CONFLICT (id) DO NOTHING;
+
+-- Missões do Módulo 2: Python
+INSERT INTO missoes (id, modulo_id, titulo, enunciado, codigo_inicial, criterio_aceite, dificuldade) VALUES
+(5, 2, 'O Grimório das Variáveis: Cálculo de Dano Crítico', 'Calcule o dano total: (ataque_base * multiplicador) + bonus.', 'def calcular_dano_critico(ataque_base: int, multiplicador: float, bonus_arma: int) -> float:\n    return round((ataque_base * multiplicador) + bonus_arma, 2)', 'Retorno numérico com fórmula correta.', 'facil'),
+(6, 2, 'A Sentinela dos Portais: Decisões if / elif / else', 'Verifique o nível do herói para autorizar acesso aos portais.', 'def verificar_acesso_portal(nivel_aventureiro: int, possui_chave: bool) -> str:\n    if nivel_aventureiro >= 20 and possui_chave:\n        return "Acesso Permitido: Santuário dos Mestres"\n    elif nivel_aventureiro >= 10:\n        return "Acesso Permitido: Pátio dos Aprendizes"\n    else:\n        return "Acesso Negado: Nível Insuficiente"', 'Contemplar todas as faixas de nível.', 'medio'),
+(7, 2, 'O Inventário Mágico: Listas e Dicionários', 'Busque o poder de um item em um dicionário.', 'def consultar_poder_item(grimorio: dict, nome_item: str) -> int:\n    return grimorio.get(nome_item, 0)', 'Consulta segura de dicionário.', 'medio'),
+(8, 2, 'A Forja dos Heróis: Classes e POO em Python', 'Crie a classe PersonagemRPG com método receber_dano.', 'class PersonagemRPG:\n    def __init__(self, nome: str, vida: int = 100):\n        self.nome = nome\n        self.vida = max(0, vida)\n    def receber_dano(self, dano: int) -> int:\n        self.vida = max(0, self.vida - dano)\n        return self.vida', 'Classe com atributos e métodos de combate.', 'dificil')
+ON CONFLICT (id) DO NOTHING;
+
+-- Missões do Módulo 3: HTML & CSS
+INSERT INTO missoes (id, modulo_id, titulo, enunciado, codigo_inicial, criterio_aceite, dificuldade) VALUES
+(9, 3, 'A Forja Semântica: O Pergaminho de Missão', 'Crie a marcação semântica com article, header e p.', '<article class="card-missao">\n  <header><h2>Missão</h2></header>\n  <p>Descrição</p>\n</article>', 'Uso de tags semânticas do HTML5.', 'facil'),
+(10, 3, 'O Escudo Flexbox: Grid de Inventário Alinhado', 'Estilize o inventário com CSS Grid e Flexbox.', '.inventario { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }', 'Alinhamento e espaçamento fluido.', 'medio'),
+(11, 3, 'A Barra de Mana Animada: Keyframes e Gradientes', 'Crie animação contínua @keyframes na barra de energia.', '@keyframes pulsarMana { 0% { filter: brightness(1); } 100% { filter: brightness(1.3); } }', 'Animação com linear-gradient.', 'medio'),
+(12, 3, 'O Tema Escuro do RPG: Custom Properties e Media Queries', 'Adapte o layout entre mobile e desktop.', '@media (min-width: 768px) { .painel { display: grid; grid-template-columns: 200px 1fr; } }', 'Layout responsivo adaptável.', 'dificil')
+ON CONFLICT (id) DO NOTHING;
+
+-- Missões do Módulo 4: JavaScript
+INSERT INTO missoes (id, modulo_id, titulo, enunciado, codigo_inicial, criterio_aceite, dificuldade) VALUES
+(13, 4, 'O Golpe do Dragão: Funções e Multiplicadores', 'Calcule a experiência com bônus por nível.', 'function calcularExperienciaVitoria(nivel, monstros) { return Math.round(monstros * 50 * (1 + nivel * 0.1)); }', 'Cálculo de XP arredondado.', 'facil'),
+(14, 4, 'O Feitiço dos Eventos: Manipulação de DOM', 'Atualize o texto e a barra de vida ao clicar no botão.', 'botao.addEventListener("click", () => { hp = Math.min(100, hp + 20); display.textContent = hp + " HP"; });', 'Uso de addEventListener e textContent.', 'medio'),
+(15, 4, 'O Códice dos Magos: filter, map e reduce', 'Calcule a média de poder dos magos com métodos funcionais.', 'function mediaPoder(lista) { const magos = lista.filter(h => h.classe === "Mago"); return Math.round(magos.reduce((acc, m) => acc + m.poder, 0) / magos.length); }', 'Uso de filter e reduce combinados.', 'medio'),
+(16, 4, 'A Invocação Assíncrona: Consumo de API', 'Implemente função assíncrona com async e await.', 'async function buscarOraculo() { const res = await fetch("/api/oraculo"); return await res.json(); }', 'Tratamento de Promise com async/await.', 'dificil')
+ON CONFLICT (id) DO NOTHING;

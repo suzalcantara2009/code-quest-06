@@ -4,6 +4,45 @@ Registro cronológico e detalhado de decisões técnicas de arquitetura, correç
 
 ---
 
+## [1.1.0] - 2026-11-07 (Expansão dos 4 Módulos Interativos, Otimização de Banco & Sessão Reativa)
+
+### 🚀 Adicionado
+- **Módulo 1 — Programação em Blocos (ScratchQuest)**:
+  - 6 Aulas interativas explicativas com mini-simuladores visuais animados (Fluxo Sequencial, Decisões SE/SENÃO, Loops, Variáveis/Mana, Funções modulares e Eventos).
+  - Estúdio Scratch com Palco 2D em grade, personagens (`🧙‍♂️`), moedas, orbes, chaves e portais mágicos.
+  - 8 Desafios progressivos com persistência local e síntese nativa de efeitos sonoros retrô via Web Audio API.
+- **Módulo 2 — Python (A Ponte dos Blocos para o Código)**:
+  - 6 Aulas conceituais com mini-simuladores comparando blocos visuais com sintaxe Python real (indentação de 4 espaços, loops `for` com `range()`, funções `def` e classes POO).
+  - Laboratório Python IDE integrado com editor de código monoespaçado, console stdout estilizado, suíte de testes unitários automatizados (Pass/Fail) e visor "Como seria em Blocos?".
+- **Módulo 3 — HTML5 & CSS3 (A Forja Visual da Web)**:
+  - 6 Aulas explicativas com mini-simuladores (Estrutura Semântica, Box Model concêntrico com sliders, Forja de Cristais com néon glow, alinhamento Flexbox e CSS Grid).
+  - Laboratório Web Playground com editor duplo (HTML/CSS), preview ao vivo em sandbox seguro (Desktop e Mobile 375px) e testes de validação automática.
+- **Módulo 4 — JavaScript (O Cérebro Reativo & DOM)**:
+  - 6 Aulas com mini-simuladores didáticos (`let`/`const`, manipulação do DOM ao vivo com `.textContent` e classes, `addEventListener`, métodos funcionais `.filter/.map/.reduce`, Promises com `async/await` e POO).
+  - Laboratório JavaScript IDE com Palco DOM Vivo (botões e barras de vida reais manipulados por código), console de depuração e testes unitários.
+- **Infraestrutura, Sessão e Banco de Dados**:
+  - População das 16 missões oficiais dos 4 nichos no PostgreSQL/Neon via script de seed.
+  - Rota `/api/auth/me` para identificação da sessão ativa do usuário.
+  - Barra de Navegação (`Navbar`) reativa exibindo `🧙‍♂️ [Nome] • Online no BD` e botão de encerramento de sessão (Logout).
+  - Página e API de Redefinição de Senha (`/redefinir-senha` e `/api/auth/redefinir-senha`) com validação de força e hash `bcrypt`.
+  - Usuário de teste pré-configurado: `aluno@codequest.dev` / `SenhaForte123!`.
+
+### 🛠️ Revisões e Correções Críticas sobre o que a IA propôs (Supervisão Humana)
+1. **Otimização da Conexão Neon Pooler (Resolução de Timeouts na Vercel)**:
+   - *O que a IA propôs inicialmente*: Manter a string de conexão padrão do Neon contendo o parâmetro `channel_binding=require`.
+   - *Revisão humana aplicada*: Identificou-se que a negociação SSL com `channel_binding=require` no PgBouncer causava um atraso de 27 a 40 segundos, estourando o limite de 10s da Vercel. A string foi otimizada e adicionou-se `directUrl = env("DATABASE_URL_UNPOOLED")` no `prisma/schema.prisma`. O tempo de resposta caiu de **40.000ms para 1.600ms**, permitindo salvar contas no banco com sucesso instantâneo.
+2. **Arquitetura de Efeitos Sonoros (Web Audio API vs Arquivos Pesados)**:
+   - *O que a IA propôs*: Fazer download de múltiplos arquivos `.mp3` ou `.wav` para efeitos sonoros de cliques e vitória.
+   - *Revisão humana aplicada*: Rejeitou-se a importação de mídias pesadas para evitar overhead de rede. Implementou-se um sintetizador de ondas senoidais e dente-de-serra nativo via Web Audio API do navegador, com zero kilobytes adicionais de dependência.
+3. **Fluxo de Autenticação e Experiência do Usuário (UX/DX)**:
+   - *O que a IA propôs*: Redirecionar o usuário recém-cadastrado de volta para a tela de login vazia e usar cookies `SameSite: Strict`.
+   - *Revisão humana aplicada*: Ajustou-se o cookie para `SameSite: Lax` para evitar perda de credenciais em redirecionamentos e configurou-se o cadastro para autenticar o aluno e enviá-lo diretamente à `/trilha`, gerando uma experiência fluida.
+4. **Isolamento de Execução e Prevenção de Loops**:
+   - *O que a IA propôs*: Executar scripts com `eval()` direto sem sandbox.
+   - *Revisão humana aplicada*: Encapsulou-se a execução em ambiente isolado com `new Function()` passando mocks controlados de DOM e captura interceptada de `console.log`.
+
+---
+
 ## [1.0.0] - 2026-11-04 (Release de Entrega e Publicação)
 
 ### 🚀 Adicionado

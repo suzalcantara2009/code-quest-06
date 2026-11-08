@@ -592,3 +592,136 @@ CREATE TABLE auditoria (
   Dado que qualquer ficha é criada, editada, arquivada ou restaurada,
   quando a operação é concluída com sucesso,
   então o sistema grava uma linha em `auditoria` com `ficha_id`, `autor_id`, `acao` e `data_hora`; se a gravação da auditoria falhar, a operação principal não é revertida, mas um log de erro de servidor é disparado (RNF09).
+
+---
+
+## 9. Instalação e execução (Guia do Avaliador)
+
+Esta seção foi redigida para permitir que qualquer desenvolvedor ou professor clone este repositório em uma máquina limpa e coloque a aplicação em funcionamento completo sem necessidade de suporte externo.
+
+### 9.1 Ambiente de Execução
+* **Linguagem & Runtime:** Node.js versão `20.x` LTS (ou superior) e TypeScript `5.x`.
+* **Framework Web:** Next.js `14.2.35` (App Router) com React `18.x`.
+* **Gerenciador de Pacotes:** `npm` (versão 10.x ou superior).
+* **Comando de Instalação de Dependências:**
+  ```bash
+  npm install
+  ```
+* **Comando para Iniciar Localmente:**
+  ```bash
+  npm run dev
+  ```
+* **Sistemas Operacionais Testados e Homologados:**
+  - Linux (Ubuntu 22.04 LTS / Debian 12)
+  - macOS (Sonoma / Ventura)
+  - Windows 11 (via WSL2 ou terminal PowerShell nativo)
+
+---
+
+### 9.2 Banco de Dados
+* **SGBD & Versão:** PostgreSQL versão 15 ou superior (ou serviço em nuvem Neon Serverless Postgres).
+* **Nome Padrão do Banco de Dados:** `codequest` (ou `neondb`).
+* **Caminho do Script SQL no Repositório:** [`database/schema.sql`](./database/schema.sql) (cópia espelhada em [`sql/schema.sql`](./sql/schema.sql)).
+* **Como Executar o Script:**
+  - **Via terminal PostgreSQL (psql):**
+    ```bash
+    psql -U postgres -d codequest -f database/schema.sql
+    ```
+  - **Ou diretamente via Prisma ORM:**
+    ```bash
+    npx prisma db push
+    ```
+* **Dados Iniciais:** O script [`database/schema.sql`](./database/schema.sql) **já contém os comandos INSERT** para popular os 4 módulos da trilha pedagógica, as 16 missões oficiais e o usuário fictício de testes (`aluno@codequest.dev`).
+
+#### Tabela de Estrutura de Dados (Mapeamento de Entidades)
+| Tabela | Campos Principais | Chave Primária | Relacionamentos |
+| :--- | :--- | :---: | :--- |
+| **usuarios** | id, nome, email, senha_hash, tipo, email_verificado, tentativas_login | `id` | — |
+| **sessoes** | id, usuario_id, refresh_token_hash, expira_em, revogado | `id` | `usuario_id` → `usuarios.id` |
+| **tokens_reset_senha** | id, usuario_id, token_hash, expira_em, usado | `id` | `usuario_id` → `usuarios.id` |
+| **github_cache** | usuario_github, avatar_url, repos_publicos, linguagens, total_estrelas | `usuario_github` | — |
+| **fichas** | id, usuario_id, nome, universo, classe, poder, ativo | `id` | `usuario_id` → `usuarios.id` |
+| **modulos** | id, ordem, titulo, tecnologia, descricao | `id` | — |
+| **missoes** | id, modulo_id, titulo, enunciado, codigo_inicial, criterio_aceite, dificuldade | `id` | `modulo_id` → `modulos.id` |
+| **missoes_concluidas** | id, ficha_id, missao_id, data_conclusao | `id` | `ficha_id` → `fichas.id`<br>`missao_id` → `missoes.id` |
+| **salas** | id, professor_id, nome, codigo_acesso | `id` | `professor_id` → `usuarios.id` |
+| **sala_alunos** | id, sala_id, aluno_id, entrou_em | `id` | `sala_id` → `salas.id`<br>`aluno_id` → `usuarios.id` |
+| **denuncias** | id, ficha_id, denunciante_id, moderador_id, motivo, status | `id` | `ficha_id` → `fichas.id`<br>`denunciante_id` → `usuarios.id`<br>`moderador_id` → `usuarios.id` |
+| **auditoria** | id, ficha_id, autor_id, acao, detalhes, data_hora | `id` | `ficha_id` → `fichas.id`<br>`autor_id` → `usuarios.id` |
+
+---
+
+### 9.3 Variáveis de Ambiente
+O repositório possui o arquivo [`/.env.example`](./.env.example) com valores demonstrativos. Crie um arquivo local `.env` preenchendo as seguintes chaves:
+
+| Variável | Descrição / Para que serve | Exemplo para rodar local |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | String de conexão com o PostgreSQL (usada pelo Prisma e pooler) | `postgresql://usuario:senha@localhost:5432/codequest?schema=public` |
+| `DATABASE_URL_UNPOOLED` | Conexão direta sem pooler para DDL/migrações do banco | `postgresql://usuario:senha@localhost:5432/codequest?schema=public` |
+| `SESSION_SECRET` | Chave secreta de no mínimo 32 caracteres para assinatura de cookies | `codequest-chave-secreta-de-sessao-com-minimo-32-chars` |
+| `JWT_SECRET` | Chave secreta para validação de tokens JWT | `codequest-jwt-super-segura-desenvolvimento-local` |
+| `NEXT_PUBLIC_APP_URL` | URL base do sistema para redirecionamentos e links | `http://localhost:3000` |
+| `NODE_ENV` | Modo de execução do Node.js | `development` |
+
+---
+
+### 9.4 Passo a Passo de Instalação e Execução Local
+Siga estritamente os passos numerados abaixo:
+
+1. **Clonar o Repositório do GitHub:**
+   ```bash
+   git clone https://github.com/suzalcantara2009/code-quest-06.git
+   cd code-quest-06
+   ```
+
+2. **Instalar as Dependências:**
+   ```bash
+   npm install
+   ```
+
+3. **Configurar as Variáveis de Ambiente:**
+   ```bash
+   cp .env.example .env
+   ```
+   *(Abra o arquivo `.env` e configure sua `DATABASE_URL` do PostgreSQL).*
+
+4. **Inicializar o Banco de Dados:**
+   - Opção A (Recomendada via Prisma):
+     ```bash
+     npx prisma db push
+     ```
+   - Opção B (Via SQL nativo):
+     ```bash
+     psql -U postgres -d codequest -f database/schema.sql
+     ```
+
+5. **Iniciar o Servidor de Desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+
+6. **Acessar a Aplicação no Navegador:**
+   Abra no seu navegador o endereço:
+   👉 **`http://localhost:3000`**
+
+---
+
+### 9.5 Como Testar o Sistema
+* **Usuário de Teste Pré-Configurado:**
+  - **E-mail:** `aluno@codequest.dev`
+  - **Senha:** `SenhaForte123!`
+  *(Você também pode clicar em "Criar Conta" na tela inicial e cadastrar qualquer outro e-mail com senha de 8 caracteres).*
+
+* **Roteiro do Fluxo Principal (Order de Avaliação):**
+  1. **Autenticação:** Acesse `/login`, insira as credenciais do usuário de teste. A Navbar atualizará exibindo `🧙‍♂️ Aventureiro de Teste • Online no BD`.
+  2. **Trilha Pedagógica (`/trilha`):**
+     - Acesse o **Módulo 1 (Blocos):** Abra a aba *"1. Aulas Explicativas"* e teste os mini-simuladores visuais. Em seguida, acerte o *"2. Laboratório ScratchQuest"* e rode os blocos de quebra-cabeça com áudio retrô no palco 2D.
+     - Acesse o **Módulo 2 (Python):** Confira o comparador visual de blocos para código e resolva desafios no terminal interativo com testes unitários.
+     - Acesse o **Módulo 3 (HTML & CSS):** Alterne as abas HTML e CSS no Web Playground e visualize o preview ao vivo renderizado no iframe.
+     - Acesse o **Módulo 4 (JavaScript):** Execute scripts na IDE JS e veja o Palco DOM Vivo alterar botões e barras de vida em tempo real.
+  3. **Catálogo de Missões (`/missoes`):** Filtre os desafios por dificuldade ou módulo e resolva qualquer uma das 16 missões cadastradas no banco.
+  4. **Fichas de Personagem (`/fichas`):** Crie uma ficha vinculada a um dos 7 universos (ex: Tolkien, D&D, Marvel), edite atributos e confira o ranking.
+
+* **Problemas Conhecidos ou Limitações do MVP:**
+  - A integração com a API pública do GitHub depende de conectividade externa e respeita o rate-limit oficial do GitHub (60 requisições não autenticadas/hora por IP).
+  - Em navegadores antigos sem suporte a Web Audio API, os sintetizadores de som retrô rodam em modo silencioso sem travar a interface.
